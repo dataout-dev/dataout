@@ -10,7 +10,7 @@ function App() {
         teaching from tutorials.
       </p>
       <p className="mt-10 text-sm uppercase tracking-widest text-slate-500">
-        Coming soon
+        Coming Soon
       </p>
     </div>
   )
