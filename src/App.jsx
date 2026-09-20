@@ -1,18 +1,44 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
+import Home from './pages/Home'
+import Learn from './pages/Learn'
+import Community from './pages/Community'
+import Competition from './pages/Competition'
+import Profile from './pages/Profile'
+import Settings from './pages/Settings'
+import Daily from './pages/Daily'
+import Signup from './pages/Signup'
+import Login from './pages/Login'
+import Layout from './components/Layout'
+import Lesson from './pages/Lesson'
+import SqlMainPage from './pages/SqlMainPage'
+import ProtectedRoute from './components/ProtectedRoute'
+
+
 function App() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-900 px-6 text-center">
-      <h1 className="text-5xl font-bold text-white sm:text-6xl">
-        dataout<span className="text-sky-400">.dev</span>
-      </h1>
-      <p className="mt-6 max-w-xl text-lg text-slate-400">
-        A mapped, hands-on path through Python, SQL, and data engineering —
-        built by someone shipping data pipelines in production, not just
-        teaching from tutorials.
-      </p>
-      <p className="mt-10 text-sm uppercase tracking-widest text-slate-500">
-        Coming Soon
-      </p>
-    </div>
+    <ThemeProvider>
+    <AuthProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/learn" element={<Learn />} />
+          <Route path="/learn/:lessonType" element={<ProtectedRoute><SqlMainPage /></ProtectedRoute>}/>
+          <Route path='/learn/:lessonType/:lessonId' element={<ProtectedRoute><Lesson /></ProtectedRoute>}/>
+          {/* <Route path="/daily" element={<Daily />} /> */}
+          {/* <Route path="/community" element={<Community />} /> */}
+          {/* <Route path="/competition" element={<Competition />} /> */}
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+    </AuthProvider>
+    </ThemeProvider>
   )
 }
 
