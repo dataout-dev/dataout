@@ -1,0 +1,24 @@
+{
+  "datasets": [
+    {
+      "id": "spotify-2024",
+      "name": "Most Streamed Spotify Songs 2024",
+      "description": "About 4,600 of the most streamed songs of 2024, with streaming, playlist, video and radio numbers from more than a dozen platforms.",
+      "file": "spotify-2024.sqlite",
+      "author": "Nidula Elgiriyewithana",
+      "source": {
+        "name": "Kaggle",
+        "url": "https://www.kaggle.com/datasets/nelgiriyewithana/most-streamed-spotify-songs-2024"
+      },
+      "license": {
+        "name": "CC BY-SA 4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+      },
+      "changes": "Modified from the original CSV: converted to a SQLite table named songs, text decoded as Windows-1252, numbers with thousands separators converted to real numbers, release dates converted to YYYY-MM-DD, the empty TIDAL Popularity column removed, and 2 rows with a repeated ISRC removed.",
+      "notes": [
+        "Roughly 1 in 9 track, album or artist names lost their accented characters before this data reached us (for example Beyoncé appears as Beyoncï¿). That damage is in the original file and can't be repaired.",
+        "Many numeric columns have missing values, which show up as NULL. For example, almost half of the songs have no SiriusXM spins."
+      ]
+    }
+  ]
+}

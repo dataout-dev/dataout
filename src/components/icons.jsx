@@ -246,6 +246,54 @@ export function ChevronDown({ className }) {
   )
 }
 
+export function ArrowUp({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 19V5M6 11l6-6 6 6" />
+    </svg>
+  )
+}
+
+export function ArrowDown({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14M6 13l6 6 6-6" />
+    </svg>
+  )
+}
+
+export function Plus({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+export function Trash({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6" />
+    </svg>
+  )
+}
+
+export function Download({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 4v11M7 10l5 5 5-5M4 20h16" />
+    </svg>
+  )
+}
+
+export function Upload({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 15V4M7 9l5-5 5 5M4 20h16" />
+    </svg>
+  )
+}
+
 export function GoogleMark({ className }) {
   return (
     <svg viewBox="0 0 24 24" className={className}>

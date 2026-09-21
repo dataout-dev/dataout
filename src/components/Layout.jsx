@@ -2,10 +2,54 @@ import { useState } from 'react'
 import { Outlet, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
+import { availablePlaygrounds } from '../data/playgrounds'
+import { ChevronDown } from './icons'
+
+const learnItems = [{ label: 'SQL', to: '/learn/sql' }]
+const playgroundItems = availablePlaygrounds.map((p) => ({ label: p.name, to: p.path }))
+
+// A nav link that opens a small menu on hover or keyboard focus. The label itself still links
+// to the section's overview page.
+function NavDropdown({ label, to, items }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false)
+      }}
+    >
+      <Link to={to} className="flex items-center gap-1 text-body-text text-sm hover:text-heading transition-colors">
+        {label}
+        <ChevronDown className="h-3.5 w-3.5" />
+      </Link>
+
+      {open && (
+        <div className="absolute left-0 top-full pt-2 z-30">
+          <div className="bg-surface border border-heading/10 rounded-xl shadow-sm py-1.5 min-w-[130px]">
+            {items.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="block px-4 py-2 text-sm text-body-text hover:bg-heading/5 hover:text-heading transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function Layout() {
   const { session } = useAuth()
-  const [learnOpen, setLearnOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-cream">
@@ -19,32 +63,8 @@ function Layout() {
 
         <div className="hidden md:flex items-center gap-8">
           <Link to="/" className="text-body-text text-sm hover:text-heading transition-colors">Home</Link>
-          <div
-            className="relative"
-            onMouseEnter={() => setLearnOpen(true)}
-            onMouseLeave={() => setLearnOpen(false)}
-          >
-            <Link to="/learn" className="flex items-center gap-1 text-body-text text-sm hover:text-heading transition-colors">
-              Learn
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </Link>
-
-            {learnOpen && (
-              <div className="absolute left-0 top-full pt-2 z-30">
-                <div className="bg-surface border border-heading/10 rounded-xl shadow-sm py-1.5 min-w-[130px]">
-                  <Link
-                    to="/learn/sql"
-                    className="block px-4 py-2 text-sm text-body-text hover:bg-heading/5 hover:text-heading transition-colors"
-                    onClick={() => setLearnOpen(false)}
-                  >
-                    SQL
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
+          <NavDropdown label="Learn" to="/learn" items={learnItems} />
+          <NavDropdown label="Playground" to="/playground" items={playgroundItems} />
         </div>
 
         <div className="flex items-center gap-4">

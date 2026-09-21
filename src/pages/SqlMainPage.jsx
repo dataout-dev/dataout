@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom'
 import { lessons } from '../data/lessons'
 import { useCompletedLessons } from '../lib/useCompletedLessons'
 import { isLessonUnlocked } from '../lib/lessonAccess'
-import { ArrowLeft, ArrowRight, Database, Check, Lock } from '../components/icons'
+import { sqlPlayground } from '../data/playgrounds'
+import { ArrowLeft, ArrowRight, Database, Check, Lock, Terminal } from '../components/icons'
 
 const upcomingTopics = [
   {
@@ -28,21 +29,41 @@ function SqlMainPage() {
 
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-fade pointer-events-none" />
-        <div className="relative max-w-4xl mx-auto px-8 pt-16 pb-16">
-          <span className="inline-flex items-center gap-2 text-xs font-medium text-heading bg-surface border border-heading/10 px-3 py-1.5 rounded-full mb-8 shadow-sm">
-            <Database className="h-3.5 w-3.5 text-primary-accent" />
-            SQL foundations
-          </span>
+        <div className="relative max-w-4xl mx-auto px-8 pt-16 pb-16 grid gap-10 lg:grid-cols-[1fr_300px] lg:items-center">
+          <div>
+            <span className="inline-flex items-center gap-2 text-xs font-medium text-heading bg-surface border border-heading/10 px-3 py-1.5 rounded-full mb-8 shadow-sm">
+              <Database className="h-3.5 w-3.5 text-primary-accent" />
+              SQL foundations
+            </span>
 
-          <h1 className="font-display font-semibold text-5xl md:text-6xl leading-[1.05] mb-6">
-            <span className="text-heading/50">Learn SQL</span>
-            <br />
-            <span className="text-primary-accent/50">by querying.</span>
-          </h1>
+            <h1 className="font-display font-semibold text-5xl md:text-6xl leading-[1.05] mb-6">
+              <span className="text-heading/50">Learn SQL</span>
+              <br />
+              <span className="text-primary-accent/50">by querying.</span>
+            </h1>
 
-          <p className="text-body-text max-w-lg leading-relaxed">
-            A practical path from your first SELECT to answering the questions teams ask.
-          </p>
+            <p className="text-body-text max-w-lg leading-relaxed">
+              A practical path from your first SELECT to answering the questions teams ask.
+            </p>
+          </div>
+
+          <Link
+            to={sqlPlayground.path}
+            className="group rounded-2xl border border-heading/10 bg-surface p-6 shadow-sm transition-colors hover:border-heading/25"
+          >
+            <span className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-heading/10 text-heading">
+              <Terminal className="h-5 w-5" />
+            </span>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary-accent">SQL playground</p>
+            <p className="mb-2 font-display text-xl font-semibold text-heading">Try it on real data.</p>
+            <p className="mb-5 text-sm leading-relaxed text-body-text">
+              Open a notebook, query real datasets, or upload your own CSV file.
+            </p>
+            <span className="flex items-center gap-1 text-sm font-semibold text-heading">
+              Open playground
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Link>
         </div>
       </section>
 

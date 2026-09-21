@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
@@ -13,8 +14,10 @@ import Login from './pages/Login'
 import Layout from './components/Layout'
 import Lesson from './pages/Lesson'
 import SqlMainPage from './pages/SqlMainPage'
+import PlaygroundHome from './pages/PlaygroundHome'
 import ProtectedRoute from './components/ProtectedRoute'
 
+const Playground = lazy(() => import('./pages/Playground'))
 
 function App() {
   return (
@@ -34,6 +37,17 @@ function App() {
           {/* <Route path="/competition" element={<Competition />} /> */}
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/playground" element={<PlaygroundHome />} />
+          <Route
+            path="/playground/sql"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the playground...</p>}>
+                  <Playground />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>
