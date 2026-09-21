@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { lessons } from '../data/lessons'
+import { trackColors } from '../data/trackColors'
 import { Sparkles, Database, CodeIcon, GitBranch, Check, ArrowRight } from '../components/icons'
 
 const trackIcons = {
@@ -14,7 +15,7 @@ function Learn() {
       id: 'sql',
       name: 'SQL',
       available: true,
-      color: 'bg-[#cfe3f5]',
+      color: trackColors.sql,
       desc: 'Learn to ask better questions of data, one query at a time.',
       lessonCount: lessons.filter((l) => l.subject === 'sql').length,
     },
@@ -22,14 +23,14 @@ function Learn() {
       id: 'python',
       name: 'Python',
       available: false,
-      color: 'bg-[#f4e2d0]',
+      color: trackColors.python,
       desc: 'Use Python to clean, explore, and automate your data work.',
     },
     {
       id: 'de',
       name: 'Data engineering',
       available: false,
-      color: 'bg-[#dcead9]',
+      color: trackColors.de,
       desc: 'Build reliable pipelines that move data from source to insight.',
     },
   ]
@@ -69,10 +70,10 @@ function Learn() {
             const content = (
               <>
                 <div className="flex items-start justify-between mb-10">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface/70 text-heading">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/70 text-[#1c1c1a]">
                     <Icon className="h-5 w-5" />
                   </span>
-                  <span className="text-[10px] font-semibold tracking-wide text-caption bg-surface/70 rounded-full px-2.5 py-1">
+                  <span className="text-[10px] font-semibold tracking-wide text-[#57534e] bg-white/70 rounded-full px-2.5 py-1">
                     {subject.available ? 'AVAILABLE' : 'SOON'}
                   </span>
                 </div>
@@ -89,7 +90,7 @@ function Learn() {
                       </span>
                     </div>
                   ) : (
-                    <p className="text-sm text-[#a8a29e]">In the works</p>
+                    <p className="text-sm text-[#57534e]">In the works</p>
                   )}
                 </div>
               </>

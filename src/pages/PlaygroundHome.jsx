@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { playgrounds } from '../data/playgrounds'
+import { trackColors } from '../data/trackColors'
 import { ArrowRight, CodeIcon, Database, Lock, Sparkles } from '../components/icons'
 
 const playgroundIcons = {
@@ -40,39 +41,40 @@ function PlaygroundHome() {
             const inner = (
               <>
                 <div className="mb-10 flex items-start justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-heading/10 text-heading">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/70 text-[#1c1c1a]">
                     <Icon className="h-5 w-5" />
                   </span>
-                  <span className="rounded-full bg-heading/10 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-body-text">
+                  <span className="rounded-full bg-white/70 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-[#57534e]">
                     {playground.available ? 'AVAILABLE' : 'SOON'}
                   </span>
                 </div>
-                <p className="mb-1.5 text-lg font-semibold text-heading">{playground.name} playground</p>
-                <p className="mb-5 text-sm leading-relaxed text-body-text">{playground.description}</p>
+                <p className="mb-1.5 text-lg font-semibold text-[#1c1c1a]">{playground.name} playground</p>
+                <p className="mb-5 text-sm leading-relaxed text-[#57534e]">{playground.description}</p>
                 {playground.available ? (
-                  <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-heading">
+                  <span className="mt-auto flex items-center gap-1 text-sm font-semibold text-[#1c1c1a]">
                     Open notebook <ArrowRight className="h-4 w-4" />
                   </span>
                 ) : (
-                  <span className="mt-auto flex items-center gap-1.5 text-sm text-body-text">
+                  <span className="mt-auto flex items-center gap-1.5 text-sm text-[#57534e]">
                     <Lock className="h-3.5 w-3.5" /> In the works
                   </span>
                 )}
               </>
             )
 
+            // The pastel backgrounds are fixed brand colors, so the text on them is fixed dark too.
             return playground.available ? (
               <Link
                 key={playground.id}
                 to={playground.path}
-                className="flex min-h-[240px] flex-col rounded-2xl border border-heading/10 bg-surface p-6 transition-colors hover:border-heading/25"
+                className={`flex min-h-[240px] flex-col rounded-2xl p-6 transition hover:brightness-[0.98] ${trackColors[playground.id]}`}
               >
                 {inner}
               </Link>
             ) : (
               <div
                 key={playground.id}
-                className="flex min-h-[240px] cursor-not-allowed flex-col rounded-2xl border border-heading/10 bg-surface p-6"
+                className={`flex min-h-[240px] cursor-not-allowed flex-col rounded-2xl p-6 ${trackColors[playground.id]}`}
               >
                 {inner}
               </div>

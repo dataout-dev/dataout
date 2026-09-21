@@ -98,18 +98,18 @@ function Home() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-[#f4e2d0] rounded-xl p-3.5 flex flex-col">
                   <div className="flex items-start justify-between mb-6">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface/70 text-heading">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-[#1c1c1a]">
                       <CodeIcon className="h-4 w-4" />
                     </span>
-                    <span className="text-[9px] font-medium tracking-wide text-caption bg-surface/70 rounded-full px-2 py-0.5">SOON</span>
+                    <span className="text-[9px] font-medium tracking-wide text-[#57534e] bg-white/70 rounded-full px-2 py-0.5">SOON</span>
                   </div>
                   <p className="text-sm font-semibold text-[#1c1c1a] mb-0.5">Python</p>
-                  <p className="text-[11px] text-[#a8a29e]">Coming soon</p>
+                  <p className="text-[11px] text-[#57534e]">Coming soon</p>
                 </div>
 
                 <Link to="/learn/sql" className="bg-[#cfe3f5] rounded-xl p-3.5 flex flex-col hover:brightness-[0.98] transition">
                   <div className="flex items-start justify-between mb-6">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface/70 text-heading">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-[#1c1c1a]">
                       <Database className="h-4 w-4" />
                     </span>
                     <ExternalLink className="h-3.5 w-3.5 text-[#1c1c1a]/70" />
@@ -120,13 +120,13 @@ function Home() {
 
                 <div className="bg-[#dcead9] rounded-xl p-3.5 flex flex-col">
                   <div className="flex items-start justify-between mb-6">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface/70 text-heading">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-[#1c1c1a]">
                       <GitBranch className="h-4 w-4" />
                     </span>
-                    <span className="text-[9px] font-medium tracking-wide text-caption bg-surface/70 rounded-full px-2 py-0.5">SOON</span>
+                    <span className="text-[9px] font-medium tracking-wide text-[#57534e] bg-white/70 rounded-full px-2 py-0.5">SOON</span>
                   </div>
                   <p className="text-sm font-semibold text-[#1c1c1a] mb-0.5">Data engineering</p>
-                  <p className="text-[11px] text-[#a8a29e]">Coming soon</p>
+                  <p className="text-[11px] text-[#57534e]">Coming soon</p>
                 </div>
               </div>
 
