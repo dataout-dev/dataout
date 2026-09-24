@@ -1,27 +1,28 @@
 import { Link } from 'react-router-dom'
-import { lessons } from '../data/lessons'
+import { lessons, tierLessons, tiers, examId } from '../data/lessons'
+import { exams } from '../data/curriculum/exams'
 import { useCompletedLessons } from '../lib/useCompletedLessons'
-import { isLessonUnlocked } from '../lib/lessonAccess'
+import { isStepUnlocked } from '../lib/lessonAccess'
 import { sqlPlayground } from '../data/playgrounds'
 import { ArrowLeft, ArrowRight, Database, Check, Lock, Terminal } from '../components/icons'
 
-const upcomingTopics = [
-  {
-    title: 'Selecting and sorting data',
-    desc: 'Choose columns and organize results with ORDER BY.',
-  },
-]
+const pad = (n) => String(n).padStart(2, '0')
+
+function StatusTag({ completed, unlocked }) {
+  if (completed) return <span className="text-[10px] font-semibold tracking-widest text-correct uppercase">Completed</span>
+  if (unlocked) return <span className="text-[10px] font-semibold tracking-widest text-primary-accent uppercase">Available</span>
+  return <span className="text-[10px] font-semibold tracking-widest text-body-text bg-cream rounded-full px-2 py-0.5 uppercase">Locked</span>
+}
 
 function SqlMainPage() {
-  const sqlLessons = lessons.filter((l) => l.subject === 'sql')
   const { completedIds } = useCompletedLessons()
-  const pad = (n) => String(n).padStart(2, '0')
+  const doneCount = lessons.filter((l) => completedIds.has(l.id)).length
 
   return (
     <div className="bg-cream">
       <div className="border-b border-heading/10">
         <div className="max-w-4xl mx-auto px-8 py-4">
-          <Link to="/learn" className="inline-flex items-center gap-2 text-sm text-caption hover:text-heading transition-colors">
+          <Link to="/learn" className="inline-flex items-center gap-2 text-sm text-body-text hover:text-heading transition-colors">
             <ArrowLeft className="h-4 w-4" /> All learning paths
           </Link>
         </div>
@@ -42,8 +43,13 @@ function SqlMainPage() {
               <span className="text-primary-accent/50">by querying.</span>
             </h1>
 
-            <p className="text-body-text max-w-lg leading-relaxed">
-              A practical path from your first SELECT to answering the questions teams ask.
+            <p className="text-body-text max-w-lg leading-relaxed mb-6">
+              A practical path from your first SELECT to answering the questions teams ask. Every lesson ends on real
+              data.
+            </p>
+
+            <p className="text-sm text-body-text">
+              <span className="font-semibold text-heading">{doneCount}</span> of {lessons.length} lessons complete
             </p>
           </div>
 
@@ -69,95 +75,163 @@ function SqlMainPage() {
 
       <section className="max-w-4xl mx-auto px-8 pb-24">
         <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-3">Your curriculum</p>
-        <h2 className="font-display font-semibold text-3xl md:text-4xl text-heading mb-2">Start with the fundamentals.</h2>
-        <p className="text-body-text mb-8">Short lessons, real tables, and a query editor to practice as you go.</p>
+        <h2 className="font-display font-semibold text-3xl md:text-4xl text-heading mb-2">Four tiers, one step at a time.</h2>
+        <p className="text-body-text mb-10">
+          Finish a tier's lessons to unlock its exam. Pass the exam to open the next tier.
+        </p>
 
-        <div className="flex flex-col gap-4">
-          {sqlLessons.map((lesson, i) => {
-            const completed = completedIds.has(lesson.id)
-            const unlocked = isLessonUnlocked(sqlLessons, i, completedIds)
+        <div className="flex flex-col gap-14">
+          {tiers.map((tier, tierIndex) => {
+            const tierItems = tierLessons(tier.id)
+            const done = tierItems.filter((l) => completedIds.has(l.id)).length
+            const percent = Math.round((done / tierItems.length) * 100)
+            const questions = exams[tier.id] ?? []
+            const points = questions.reduce((sum, q) => sum + q.points, 0)
+            const examStepId = examId(tier.id)
+            const examUnlocked = isStepUnlocked(examStepId, completedIds)
+            const examPassed = completedIds.has(examStepId)
+            const previousTier = tiers[tierIndex - 1]
 
-            const body = (
-              <>
-                <div className="flex items-start gap-4">
-                  {completed ? (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-correct/10 text-correct mt-1 shrink-0">
-                      <Check className="h-3.5 w-3.5" />
-                    </span>
-                  ) : (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-heading/15 text-caption text-[10px] font-medium mt-1 shrink-0">
-                      {pad(i + 1)}
-                    </span>
-                  )}
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className="font-semibold text-heading">
-                        {lesson.title} {lesson.titleAccent}
+            return (
+              <div key={tier.id} id={tier.id}>
+                <div className="mb-5 rounded-2xl p-6" style={{ backgroundColor: tier.color }}>
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[#57534e]">
+                        Tier {tier.number}
                       </p>
-                      {completed ? (
-                        <span className="text-[10px] font-semibold tracking-widest text-correct uppercase">Completed</span>
-                      ) : unlocked ? (
-                        <span className="text-[10px] font-semibold tracking-widest text-primary-accent uppercase">Available</span>
-                      ) : (
-                        <span className="text-[10px] font-semibold tracking-widest text-caption bg-cream rounded-full px-2 py-0.5 uppercase">Locked</span>
-                      )}
+                      <h3 className="font-display text-3xl font-semibold text-[#1c1c1a]">{tier.name}</h3>
+                      <p className="mt-1 text-sm text-[#3f3b37]">{tier.tagline}</p>
+                      <p className="mt-3 text-xs text-[#57534e]">
+                        {tier.audience} Data: {tier.datasetNote}
+                      </p>
                     </div>
-                    <p className="text-sm text-body-text">
-                      {unlocked ? lesson.blurb : 'Complete the previous lesson to unlock this one.'}
-                    </p>
+                    <div className="w-full sm:w-48">
+                      <p className="mb-1.5 text-xs font-semibold text-[#1c1c1a]">
+                        {done} / {tierItems.length} lessons
+                      </p>
+                      <div className="h-2 overflow-hidden rounded-full bg-white/60">
+                        <div className="h-full rounded-full bg-[#1c1c1a]" style={{ width: `${percent}%` }} />
+                      </div>
+                    </div>
                   </div>
                 </div>
-                {unlocked ? (
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-heading text-cream shrink-0 group-hover:bg-heading/90 transition-colors">
-                    <ArrowRight className="h-4 w-4" />
-                  </span>
-                ) : (
-                  <Lock className="h-4 w-4 text-placeholder shrink-0" />
-                )}
-              </>
-            )
 
-            return unlocked ? (
-              <Link
-                key={lesson.id}
-                to={`/learn/sql/${lesson.id}`}
-                className="group flex items-center justify-between gap-4 bg-surface rounded-2xl border border-heading/10 p-6 hover:border-heading/20 transition-colors"
-              >
-                {body}
-              </Link>
-            ) : (
-              <div
-                key={lesson.id}
-                aria-disabled="true"
-                className="flex items-center justify-between gap-4 bg-surface rounded-2xl border border-heading/10 p-6 cursor-not-allowed"
-              >
-                {body}
+                <div className="flex flex-col gap-4">
+                  {tierItems.map((lesson) => {
+                    const completed = completedIds.has(lesson.id)
+                    const unlocked = isStepUnlocked(lesson.id, completedIds)
+                    const isFirstOfTier = lesson.numberInTier === 1
+
+                    const body = (
+                      <>
+                        <div className="flex items-start gap-4">
+                          {completed ? (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-correct/10 text-correct mt-1 shrink-0">
+                              <Check className="h-3.5 w-3.5" />
+                            </span>
+                          ) : (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-heading/15 text-body-text text-[10px] font-medium mt-1 shrink-0">
+                              {pad(lesson.number)}
+                            </span>
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <p className="font-semibold text-heading">
+                                {lesson.title} {lesson.titleAccent}
+                              </p>
+                              <StatusTag completed={completed} unlocked={unlocked} />
+                            </div>
+                            <p className="text-sm text-body-text">
+                              {unlocked
+                                ? lesson.blurb
+                                : isFirstOfTier && previousTier
+                                  ? `Pass the ${previousTier.name} exam to unlock this tier.`
+                                  : 'Complete the previous lesson to unlock this one.'}
+                            </p>
+                          </div>
+                        </div>
+                        {unlocked ? (
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-heading text-cream shrink-0 group-hover:bg-heading/90 transition-colors">
+                            <ArrowRight className="h-4 w-4" />
+                          </span>
+                        ) : (
+                          <Lock className="h-4 w-4 text-placeholder shrink-0" />
+                        )}
+                      </>
+                    )
+
+                    return unlocked ? (
+                      <Link
+                        key={lesson.id}
+                        to={`/learn/sql/${lesson.id}`}
+                        className="group flex items-center justify-between gap-4 bg-surface rounded-2xl border border-heading/10 p-6 hover:border-heading/20 transition-colors"
+                      >
+                        {body}
+                      </Link>
+                    ) : (
+                      <div
+                        key={lesson.id}
+                        aria-disabled="true"
+                        className="flex items-center justify-between gap-4 bg-surface rounded-2xl border border-heading/10 p-6 cursor-not-allowed"
+                      >
+                        {body}
+                      </div>
+                    )
+                  })}
+
+                  {(() => {
+                    const body = (
+                      <>
+                        <div className="flex items-start gap-4">
+                          <span
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-[#1c1c1a]"
+                            style={{ backgroundColor: tier.color }}
+                          >
+                            {examPassed ? <Check className="h-4 w-4" /> : '★'}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <p className="font-semibold text-heading">{tier.name} tier exam</p>
+                              <StatusTag completed={examPassed} unlocked={examUnlocked} />
+                            </div>
+                            <p className="text-sm text-body-text">
+                              {examUnlocked
+                                ? `${questions.length} questions on real data · ${points} points · pass at ${tier.examPassPercent}%`
+                                : `Finish all ${tierItems.length} lessons in this tier to unlock the exam.`}
+                            </p>
+                          </div>
+                        </div>
+                        {examUnlocked ? (
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-heading text-cream shrink-0 group-hover:bg-heading/90 transition-colors">
+                            <ArrowRight className="h-4 w-4" />
+                          </span>
+                        ) : (
+                          <Lock className="h-4 w-4 text-placeholder shrink-0" />
+                        )}
+                      </>
+                    )
+
+                    return examUnlocked ? (
+                      <Link
+                        to={`/learn/sql/exam/${tier.id}`}
+                        className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-heading/15 bg-surface p-6 hover:border-heading/30 transition-colors"
+                      >
+                        {body}
+                      </Link>
+                    ) : (
+                      <div
+                        aria-disabled="true"
+                        className="flex items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-heading/10 bg-surface p-6 cursor-not-allowed"
+                      >
+                        {body}
+                      </div>
+                    )
+                  })()}
+                </div>
               </div>
             )
           })}
-
-          {upcomingTopics.map((topic, i) => (
-            <div
-              key={topic.title}
-              className="flex items-center justify-between gap-4 bg-surface rounded-2xl border border-heading/10 p-6 cursor-not-allowed"
-            >
-              <div className="flex items-start gap-4">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cream text-heading text-sm font-medium shrink-0">
-                  {pad(sqlLessons.length + i + 1)}
-                </span>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <p className="font-semibold text-heading">{topic.title}</p>
-                    <span className="text-[10px] font-semibold tracking-widest text-caption bg-cream rounded-full px-2 py-0.5 uppercase">
-                      Coming soon
-                    </span>
-                  </div>
-                  <p className="text-sm text-body-text">{topic.desc}</p>
-                </div>
-              </div>
-              <Lock className="h-4 w-4 text-placeholder shrink-0" />
-            </div>
-          ))}
         </div>
       </section>
     </div>

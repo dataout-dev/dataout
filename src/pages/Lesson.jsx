@@ -1,15 +1,17 @@
-// src/pages/Lesson.jsx
-import { useState, useEffect, useRef } from 'react'
-import { loadSql } from '../lib/sqlEngine'
-import { lessons } from '../data/lessons'
-import { formatQueryResult, resultsMatch, evaluateSubmission } from '../lib/sqlHelpers'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
+import { loadSql } from '../lib/sqlEngine'
+import { lessonById, pathIndex, pathUrl, sqlPath, tierById } from '../data/lessons'
+import { formatQueryResult, resultsMatch } from '../lib/sqlHelpers'
+import { evaluateLesson, expectedFor, openCase } from '../lib/lessonGrading'
+import { useChallenge } from '../lib/useChallenge'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { useCompletedLessons } from '../lib/useCompletedLessons'
-import { isLessonUnlocked } from '../lib/lessonAccess'
+import { isStepUnlocked } from '../lib/lessonAccess'
 import { loadLessonDoc } from '../lib/lessonDocs'
 import Markdown from '../components/Markdown'
+import { Feedback, QueryPanel, SchemaCard, WalkthroughPanel } from '../components/challenge/ChallengeParts'
 import {
   ArrowLeft,
   ArrowRight,
@@ -22,12 +24,6 @@ import {
   CircleCheck,
   CircleAlert,
 } from '../components/icons'
-
-const subjectLabels = {
-  sql: 'SQL',
-  python: 'Python',
-  de: 'Data engineering',
-}
 
 function InlineText({ text }) {
   const parts = text.split(/`([^`]+)`/g)
@@ -45,20 +41,24 @@ function InlineText({ text }) {
 const tabs = [
   { id: 'learn', label: 'Learn' },
   { id: 'practice', label: 'Practice' },
+  { id: 'real', label: 'On real data' },
 ]
 
-function LessonHeading({ subjectLabel, number, lesson, large = false }) {
+function LessonHeading({ tier, lesson, large = false }) {
   return (
     <>
       <div className="flex items-center gap-3 mb-6">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#cfe3f5] text-[#2f6f9e]">
+        <span
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-[#1c1c1a]"
+          style={{ backgroundColor: tier.color }}
+        >
           <Database className="h-5 w-5" />
         </span>
         <div>
           <p className="text-xs font-semibold tracking-widest uppercase text-primary-accent">
-            {subjectLabel} / Lesson {number}
+            SQL · {tier.name} / Lesson {String(lesson.number).padStart(2, '0')}
           </p>
-          <p className="text-sm text-caption">{lesson.topic}</p>
+          <p className="text-sm text-body-text">{lesson.topic}</p>
         </div>
       </div>
 
@@ -79,16 +79,57 @@ function LessonHeading({ subjectLabel, number, lesson, large = false }) {
   )
 }
 
+function RealChallenge({ lesson }) {
+  const real = lesson.real
+  const challenge = useChallenge({
+    datasetId: real.dataset,
+    reference: real.reference,
+    orderMatters: real.orderMatters,
+    progressId: `lesson-real:${lesson.id}`,
+  })
+
+  return (
+    <div className="flex-1 max-w-[1600px] mx-auto px-8 py-12 grid lg:grid-cols-[380px_1fr] gap-10 w-full items-start">
+      <div className="text-left">
+        <p className="text-xs font-semibold tracking-widest uppercase text-primary-accent mb-3">On real data</p>
+        <h2 className="font-display font-semibold text-3xl text-heading leading-[1.15] mb-5">{real.title}</h2>
+
+        <div className="flex items-start gap-3 bg-surface rounded-2xl border border-heading/10 p-5 mb-6">
+          <Lightbulb className="h-4 w-4 text-primary-accent mt-1 shrink-0" />
+          <div className="min-w-0 text-sm [&_p]:mb-3 [&_p:last-child]:mb-0 [&_p]:text-sm">
+            <Markdown>{real.brief}</Markdown>
+          </div>
+        </div>
+
+        <SchemaCard challenge={challenge} />
+      </div>
+
+      <div className="min-w-0">
+        {challenge.progress.solved && (
+          <div className="mb-6 flex items-center gap-2 rounded-2xl border border-correct/25 bg-correct/10 px-5 py-3 text-sm font-semibold text-correct">
+            <CircleCheck className="h-4 w-4 shrink-0" /> You solved this on real data.
+          </div>
+        )}
+        <QueryPanel challenge={challenge} />
+        <Feedback challenge={challenge} />
+        <WalkthroughPanel challenge={challenge} walkthrough={real.walkthrough} reference={real.reference} subject="challenge" />
+      </div>
+    </div>
+  )
+}
+
 function LessonView() {
   const { lessonType, lessonId } = useParams()
-  const subjectLessons = lessons.filter((l) => l.subject === lessonType)
-  const lessonIndex = subjectLessons.findIndex((l) => l.id === lessonId)
-  const lesson = lessonIndex === -1 ? null : subjectLessons[lessonIndex]
-  const nextLesson = lessonIndex === -1 ? null : subjectLessons[lessonIndex + 1]
+  const lesson = lessonType === 'sql' ? lessonById[lessonId] : undefined
+  const tier = lesson ? tierById[lesson.tier] : null
+  const stepIndex = lesson ? pathIndex(lesson.id) : -1
+  const nextStep = stepIndex === -1 ? null : sqlPath[stepIndex + 1]
+  const totalLessons = Object.keys(lessonById).length
 
   const { session } = useAuth()
   const { completedIds, loaded, markCompleted } = useCompletedLessons()
   const dbRef = useRef(null)
+  const sampleExpectedRef = useRef([])
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
@@ -97,36 +138,41 @@ function LessonView() {
   const [submitResults, setSubmitResults] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [tab, setTab] = useState('learn')
-  const [doc, setDoc] = useState(undefined) // undefined = still loading, null = no doc for this lesson
+  const [realOpened, setRealOpened] = useState(false)
+  const [doc, setDoc] = useState(undefined)
+  const [choice, setChoice] = useState(null)
+  const [answer, setAnswer] = useState(null)
 
-  async function intializeDb() {
+  const isMcq = lesson?.kind === 'mcq'
+
+  const initializeDb = useCallback(async () => {
     const SQL = await loadSql()
     dbRef.current?.close()
-    const db = new SQL.Database()
-    db.run(lesson.testCases[0].setupSQL)
+    const first = lesson.testCases[0]
+    const db = openCase(SQL, lesson, first)
     dbRef.current = db
+    sampleExpectedRef.current = expectedFor(SQL, lesson, first)
 
     const tablesResult = db.exec("SELECT name FROM sqlite_master where type='table';")
-    const tableNames = tablesResult.length > 0
-      ? tablesResult[0].values.map((row) => row[0])
-      : []
+    const tableNames = tablesResult.length > 0 ? tablesResult[0].values.map((row) => row[0]) : []
 
-    const newSchema = tableNames.map((tableName) => {
-      const infoResult = db.exec(`PRAGMA table_info(${tableName});`)
-      const columns = infoResult.length > 0
-        ? infoResult[0].values.map((row) => ({ name: row[1], type: row[2] }))
-        : []
-
-      return { tableName, columns }
-    })
-
-    setSchema(newSchema)
-  }
+    setSchema(
+      tableNames.map((tableName) => {
+        const infoResult = db.exec(`PRAGMA table_info(${tableName});`)
+        const columns = infoResult.length > 0 ? infoResult[0].values.map((row) => ({ name: row[1], type: row[2] })) : []
+        return { tableName, columns }
+      })
+    )
+  }, [lesson])
 
   useEffect(() => {
-    if (!lesson) return
-    intializeDb()
-  }, [lesson])
+    if (!lesson || isMcq) return
+    initializeDb()
+    return () => {
+      dbRef.current?.close()
+      dbRef.current = null
+    }
+  }, [lesson, isMcq, initializeDb])
 
   useEffect(() => {
     if (!lesson) return
@@ -147,28 +193,36 @@ function LessonView() {
 
   if (!loaded) return null
 
-  if (!isLessonUnlocked(subjectLessons, lessonIndex, completedIds)) {
-    return <Navigate to={`/learn/${lessonType}`} replace />
+  if (!isStepUnlocked(lesson.id, completedIds)) {
+    return <Navigate to="/learn/sql" replace />
   }
 
-  // Run: fast feedback against the visible sample only. Never saves progress.
+  const complete = async () => {
+    markCompleted(lesson.id)
+
+    if (session) {
+      const { error: saveError } = await supabase.from('progress').upsert({
+        user_id: session.user.id,
+        lesson_id: lesson.id,
+      })
+      if (saveError) console.error('Failed to save progress:', saveError)
+    }
+  }
+
   const runQuery = () => {
     setError('')
     setResult(null)
     setIsCorrect(null)
     setSubmitResults(null)
     try {
-      const execResult = dbRef.current.exec(query)
-      const formattedResult = formatQueryResult(execResult)
-      setResult(formattedResult)
-      setIsCorrect(resultsMatch(formattedResult, lesson.testCases[0].expectedResult))
+      const rows = formatQueryResult(dbRef.current.exec(query))
+      setResult(rows)
+      setIsCorrect(resultsMatch(rows, sampleExpectedRef.current, lesson.orderMatters))
     } catch (err) {
       setError(err.message)
     }
   }
 
-  // Submit: the current query against every test case, each on its own fresh database.
-  // Progress is saved only if all of them pass.
   const handleSubmit = async () => {
     setSubmitting(true)
     setError('')
@@ -177,20 +231,9 @@ function LessonView() {
     setSubmitResults(null)
     try {
       const SQL = await loadSql()
-      const results = evaluateSubmission(SQL, lesson.testCases, query)
+      const results = evaluateLesson(SQL, lesson, query)
       setSubmitResults(results)
-
-      if (results.every((r) => r.passed)) {
-        markCompleted(lesson.id)
-
-        if (session) {
-          const { error: saveError } = await supabase.from('progress').upsert({
-            user_id: session.user.id,
-            lesson_id: lesson.id
-          })
-          if (saveError) console.error('Failed to save progress:', saveError)
-        }
-      }
+      if (results.every((r) => r.passed)) await complete()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -204,12 +247,22 @@ function LessonView() {
     setIsCorrect(null)
     setSubmitResults(null)
     setQuery('')
-    intializeDb()
+    initializeDb()
   }
 
-  const pad = (n) => String(n).padStart(2, '0')
-  const subjectLabel = subjectLabels[lessonType] || lessonType.toUpperCase()
+  const submitChoice = async () => {
+    if (!choice) return
+    if (choice === lesson.correct) {
+      setAnswer('correct')
+      await complete()
+    } else {
+      setAnswer('wrong')
+    }
+  }
+
   const canProceed = completedIds.has(lesson.id)
+  const nextUrl = nextStep ? pathUrl(nextStep) : '/learn/sql'
+  const nextLabel = !nextStep ? 'Back to path' : nextStep.kind === 'exam' ? `Take the ${tier.name} exam` : 'Next lesson'
 
   const allPassed = submitResults ? submitResults.every((r) => r.passed) : false
 
@@ -225,8 +278,8 @@ function LessonView() {
             ? 'RETRY'
             : 'READY'
   const statusStyles = {
-    READY: 'bg-cream text-caption',
-    CHECKING: 'bg-cream text-caption',
+    READY: 'bg-cream text-body-text',
+    CHECKING: 'bg-cream text-body-text',
     'SAMPLE OK': 'bg-cream text-primary-accent',
     PASSED: 'bg-correct/10 text-correct',
     RETRY: 'bg-wrong/10 text-wrong',
@@ -239,20 +292,20 @@ function LessonView() {
     <div className="bg-cream min-h-screen flex flex-col">
       <div className="border-b border-heading/10">
         <div className="max-w-[1600px] mx-auto px-8 py-4 flex items-center justify-between text-sm">
-          <Link to={`/learn/${lessonType}`} className="flex items-center gap-2 text-caption hover:text-heading transition-colors">
-            <ArrowLeft className="h-4 w-4" /> {subjectLabel} path
+          <Link to="/learn/sql" className="flex items-center gap-2 text-body-text hover:text-heading transition-colors">
+            <ArrowLeft className="h-4 w-4" /> SQL path
           </Link>
-          <p className="text-caption hidden sm:block">
-            Lesson {pad(lessonIndex + 1)} · {lesson.title}
+          <p className="text-body-text hidden sm:block">
+            {tier.name} · Lesson {String(lesson.number).padStart(2, '0')} · {lesson.title} {lesson.titleAccent}
           </p>
-          <p className="text-caption">
-            {pad(lessonIndex + 1)} / {pad(subjectLessons.length)}
+          <p className="text-body-text">
+            {String(lesson.number).padStart(2, '0')} / {totalLessons}
           </p>
         </div>
       </div>
 
       <div className="border-b border-heading/10">
-        <div role="tablist" aria-label="Lesson sections" className="max-w-[1600px] mx-auto px-8 flex gap-8">
+        <div role="tablist" aria-label="Lesson sections" className="max-w-[1600px] mx-auto px-8 flex gap-8 overflow-x-auto">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -261,11 +314,14 @@ function LessonView() {
               id={`tab-${t.id}`}
               aria-selected={tab === t.id}
               aria-controls={`panel-${t.id}`}
-              onClick={() => setTab(t.id)}
-              className={`-mb-px border-b-2 py-3.5 text-sm font-semibold transition-colors ${
+              onClick={() => {
+                setTab(t.id)
+                if (t.id === 'real') setRealOpened(true)
+              }}
+              className={`-mb-px whitespace-nowrap border-b-2 py-3.5 text-sm font-semibold transition-colors ${
                 tab === t.id
                   ? 'border-primary-accent text-heading'
-                  : 'border-transparent text-caption hover:text-heading'
+                  : 'border-transparent text-body-text hover:text-heading'
               }`}
             >
               {t.label}
@@ -274,7 +330,6 @@ function LessonView() {
         </div>
       </div>
 
-      {/* Learn tab */}
       <div
         id="panel-learn"
         role="tabpanel"
@@ -283,10 +338,10 @@ function LessonView() {
         className="flex-1 max-w-[1600px] mx-auto px-8 py-12 w-full"
       >
         <div className="max-w-3xl">
-          <LessonHeading subjectLabel={subjectLabel} number={pad(lessonIndex + 1)} lesson={lesson} large />
+          <LessonHeading tier={tier} lesson={lesson} large />
 
           {doc === undefined ? (
-            <p className="text-sm text-caption">Loading lesson…</p>
+            <p className="text-sm text-body-text">Loading lesson…</p>
           ) : doc === null ? (
             <p className="text-body-text leading-relaxed">
               There is no written lesson for this topic yet. Switch to Practice to get started.
@@ -310,7 +365,6 @@ function LessonView() {
         </div>
       </div>
 
-      {/* Practice tab */}
       <div
         id="panel-practice"
         role="tabpanel"
@@ -318,225 +372,333 @@ function LessonView() {
         hidden={tab !== 'practice'}
         className="flex-1 max-w-[1600px] mx-auto px-8 py-12 grid lg:grid-cols-[340px_1fr] gap-10 w-full items-start"
       >
-        {/* Left column */}
         <div className="text-left">
-          <LessonHeading subjectLabel={subjectLabel} number={pad(lessonIndex + 1)} lesson={lesson} />
+          <LessonHeading tier={tier} lesson={lesson} />
 
           <p className="text-body-text leading-relaxed mb-8">
             <InlineText text={lesson.concept} />
           </p>
 
-          {schema.map((table) => (
-            <div key={table.tableName} className="bg-surface rounded-2xl border border-heading/10 p-5 mb-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Table className="h-4 w-4 text-caption" />
-                <p className="text-sm font-semibold text-heading">Schema: {table.tableName}</p>
-              </div>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-cream">
-                    <th className="text-left font-medium text-caption text-xs uppercase tracking-wide px-3 py-2 rounded-l-lg">Column</th>
-                    <th className="text-left font-medium text-caption text-xs uppercase tracking-wide px-3 py-2 rounded-r-lg">Type</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {table.columns.map((col) => (
-                    <tr key={col.name} className="border-t border-heading/5">
-                      <td className="px-3 py-2.5 text-heading">{col.name}</td>
-                      <td className="px-3 py-2.5 text-caption">{col.type}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-
-          <div className="flex items-start gap-3 bg-surface rounded-2xl border border-heading/10 p-5">
-            <Lightbulb className="h-4 w-4 text-primary-accent mt-0.5 shrink-0" />
-            <p className="text-sm text-body-text">
-              <span className="font-semibold text-heading">Your task: </span>
-              {lesson.prompt}
-            </p>
-          </div>
-        </div>
-
-        {/* Right column */}
-        <div>
-          <div className="bg-surface rounded-2xl border border-heading/10 shadow-sm overflow-hidden mb-6">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-heading/10">
-              <div className="flex items-center gap-2 text-sm text-caption">
-                <Terminal className="h-4 w-4 text-heading/60" />
-                query.sql
-              </div>
-              <span className={`text-[10px] font-semibold tracking-wide rounded-full px-2.5 py-1 ${statusStyles[status]}`}>
-                {status}
-              </span>
-            </div>
-
-            <div className="flex bg-[#14161c]">
-              <div className="select-none text-right pl-5 pr-3 py-5 text-sm leading-7 text-white/25 font-mono">
-                {Array.from({ length: gutterLines }).map((_, i) => (
-                  <div key={i}>{i + 1}</div>
-                ))}
-              </div>
-              <textarea
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.ctrlKey && e.key === 'Enter') {
-                    e.preventDefault()
-                    runQuery()
-                  }
-                }}
-                rows={16}
-                spellCheck={false}
-                placeholder="-- write your SQL query here"
-                className="flex-1 resize-none bg-transparent py-5 pr-5 text-base leading-7 text-white font-mono placeholder:text-white/30 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex items-center justify-between px-5 py-3.5 border-t border-heading/10">
-              <span className="hidden sm:flex items-center gap-1.5 text-xs text-caption">
-                Ctrl + Enter to run
-              </span>
-              <div className="flex items-center gap-2.5 ml-auto">
-                <button
-                  onClick={handleReset}
-                  className="flex items-center gap-1.5 text-sm font-medium text-heading border border-heading/10 rounded-lg px-3.5 py-2 hover:bg-heading/5 transition-colors"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Reset
-                </button>
-                <button
-                  onClick={runQuery}
-                  className="flex items-center gap-1.5 text-sm font-medium text-heading border border-heading/10 rounded-lg px-3.5 py-2 hover:bg-heading/5 transition-colors"
-                >
-                  Run <Play className="h-3 w-3" />
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting || !query.trim()}
-                  className="flex items-center gap-1.5 text-sm font-semibold bg-heading text-cream rounded-lg px-4 py-2 hover:bg-heading/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Submitting…' : 'Submit'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-3 rounded-2xl border border-wrong/20 bg-wrong/5 p-5">
-              <CircleAlert className="h-5 w-5 text-wrong shrink-0" />
-              <div>
-                <p className="font-semibold text-heading mb-1">Something went wrong.</p>
-                <p className="text-sm text-body-text">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {!error && result && (
-            <div className="rounded-2xl border border-heading/10 bg-surface p-6">
-              <div className="flex items-start gap-3 mb-1">
-                {isCorrect ? (
-                  <CircleCheck className="h-5 w-5 text-correct shrink-0 mt-0.5" />
-                ) : (
-                  <CircleAlert className="h-5 w-5 text-wrong shrink-0 mt-0.5" />
-                )}
-                <div>
-                  <p className="font-semibold text-heading">
-                    {isCorrect
-                      ? `Matches the sample — query returned ${result.length} row${result.length === 1 ? '' : 's'}.`
-                      : 'Not quite — check your results.'}
-                  </p>
-                  <p className="text-sm text-body-text mt-1">
-                    {isCorrect
-                      ? 'Press Submit to check it against every test case.'
-                      : 'Compare your output with the task above and try again.'}
-                  </p>
+          {!isMcq &&
+            schema.map((table) => (
+              <div key={table.tableName} className="bg-surface rounded-2xl border border-heading/10 p-5 mb-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Table className="h-4 w-4 text-body-text" />
+                  <p className="text-sm font-semibold text-heading">Schema: {table.tableName}</p>
                 </div>
-              </div>
-
-              {result.length === 0 ? (
-                <p className="mt-4 text-sm text-body-text pl-8">Query ran successfully, but returned no rows.</p>
-              ) : (
-                <table className="mt-5 w-full text-sm border-collapse">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-cream">
-                      {Object.keys(result[0]).map((col) => (
-                        <th key={col} className="text-left text-xs uppercase tracking-wide font-medium text-caption px-3 py-2 first:rounded-l-lg last:rounded-r-lg">
-                          {col}
-                        </th>
-                      ))}
+                      <th className="text-left font-medium text-body-text text-xs uppercase tracking-wide px-3 py-2 rounded-l-lg">Column</th>
+                      <th className="text-left font-medium text-body-text text-xs uppercase tracking-wide px-3 py-2 rounded-r-lg">Type</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {result.map((row, i) => (
-                      <tr key={i} className="border-t border-heading/5">
-                        {Object.values(row).map((val, j) => (
-                          <td key={j} className="px-3 py-2.5 text-body-text">
-                            {String(val)}
-                          </td>
-                        ))}
+                    {table.columns.map((col) => (
+                      <tr key={col.name} className="border-t border-heading/5">
+                        <td className="px-3 py-2.5 text-heading">{col.name}</td>
+                        <td className="px-3 py-2.5 text-body-text">{col.type}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              )}
-            </div>
-          )}
+              </div>
+            ))}
 
-          {!error && submitResults && (
-            <div className="rounded-2xl border border-heading/10 bg-surface p-6">
-              <div className="flex items-start gap-3 mb-4">
-                {allPassed ? (
+          <div className="flex items-start gap-3 bg-surface rounded-2xl border border-heading/10 p-5">
+            <Lightbulb className="h-4 w-4 text-primary-accent mt-0.5 shrink-0" />
+            <p className="text-sm text-body-text">
+              <span className="font-semibold text-heading">{isMcq ? 'Your question: ' : 'Your task: '}</span>
+              {isMcq ? <InlineText text={lesson.question} /> : lesson.prompt}
+            </p>
+          </div>
+        </div>
+
+        {isMcq ? (
+          <div>
+            <fieldset className="bg-surface rounded-2xl border border-heading/10 shadow-sm p-6 mb-6">
+              <legend className="sr-only">Choose an answer</legend>
+              <div className="flex flex-col gap-3">
+                {lesson.options.map((option, i) => {
+                  const letter = 'ABCD'[i]
+                  const selected = choice === letter
+                  return (
+                    <label
+                      key={letter}
+                      className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm transition-colors ${
+                        selected ? 'border-primary-accent bg-badge' : 'border-heading/10 hover:bg-heading/[0.02]'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="answer"
+                        value={letter}
+                        checked={selected}
+                        onChange={() => {
+                          setChoice(letter)
+                          setAnswer(null)
+                        }}
+                        className="mt-0.5 accent-[var(--color-primary-accent)]"
+                      />
+                      <span className="text-body-text">
+                        <span className="mr-2 font-semibold text-heading">{letter}.</span>
+                        <InlineText text={option} />
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={submitChoice}
+                  disabled={!choice}
+                  className="rounded-lg bg-heading px-4 py-2 text-sm font-semibold text-cream transition-colors hover:bg-heading/90 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Check answer
+                </button>
+              </div>
+            </fieldset>
+
+            {answer && (
+              <div
+                className={`flex items-start gap-3 rounded-2xl border p-6 ${
+                  answer === 'correct' ? 'border-correct/25 bg-correct/10' : 'border-wrong/20 bg-wrong/5'
+                }`}
+              >
+                {answer === 'correct' ? (
                   <CircleCheck className="h-5 w-5 text-correct shrink-0 mt-0.5" />
                 ) : (
                   <CircleAlert className="h-5 w-5 text-wrong shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <p className="font-semibold text-heading">
-                    {allPassed ? 'All test cases passed — lesson complete.' : 'Not quite — some test cases failed.'}
-                  </p>
-                  <p className="text-sm text-body-text mt-1">
-                    {allPassed
-                      ? (lesson.successNote || 'Your query worked on every case.')
-                      : 'The data behind each case stays hidden. Re-read the task, think about what else your query should handle, and try again.'}
+                  <p className="font-semibold text-heading">{answer === 'correct' ? 'Correct.' : 'Not quite.'}</p>
+                  <p className="mt-1 text-sm text-body-text">
+                    {answer === 'correct' ? (
+                      <>
+                        <InlineText text={lesson.why} /> {lesson.successNote}
+                      </>
+                    ) : (
+                      'Think about what the database has to do, then try another answer.'
+                    )}
                   </p>
                 </div>
               </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <div className="bg-surface rounded-2xl border border-heading/10 shadow-sm overflow-hidden mb-6">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-heading/10">
+                <div className="flex items-center gap-2 text-sm text-body-text">
+                  <Terminal className="h-4 w-4 text-heading/60" />
+                  query.sql
+                </div>
+                <span className={`text-[10px] font-semibold tracking-wide rounded-full px-2.5 py-1 ${statusStyles[status]}`}>
+                  {status}
+                </span>
+              </div>
 
-              <ul className="divide-y divide-heading/5 border-t border-heading/5">
-                {submitResults.map((r) => (
-                  <li key={r.label} className="flex items-center justify-between py-3 text-sm">
-                    <span className="text-heading">{r.label}</span>
-                    <span
-                      aria-label={r.passed ? 'Passed' : 'Failed'}
-                      className={`font-semibold ${r.passed ? 'text-correct' : 'text-wrong'}`}
-                    >
-                      {r.passed ? '✓' : '✗'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="flex bg-[#14161c]">
+                <div className="select-none text-right pl-5 pr-3 py-5 text-sm leading-7 text-white/25 font-mono">
+                  {Array.from({ length: gutterLines }).map((_, i) => (
+                    <div key={i}>{i + 1}</div>
+                  ))}
+                </div>
+                <textarea
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                      e.preventDefault()
+                      runQuery()
+                    }
+                  }}
+                  rows={16}
+                  spellCheck={false}
+                  aria-label="SQL query"
+                  placeholder="-- write your SQL query here"
+                  className="flex-1 min-w-0 resize-none bg-transparent py-5 pr-5 text-base leading-7 text-white font-mono placeholder:text-white/30 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between px-5 py-3.5 border-t border-heading/10">
+                <span className="hidden sm:flex items-center gap-1.5 text-xs text-body-text">
+                  Ctrl + Enter to run
+                </span>
+                <div className="flex items-center gap-2.5 ml-auto">
+                  <button
+                    onClick={handleReset}
+                    className="flex items-center gap-1.5 text-sm font-medium text-heading border border-heading/10 rounded-lg px-3.5 py-2 hover:bg-heading/5 transition-colors"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Reset
+                  </button>
+                  <button
+                    onClick={runQuery}
+                    className="flex items-center gap-1.5 text-sm font-medium text-heading border border-heading/10 rounded-lg px-3.5 py-2 hover:bg-heading/5 transition-colors"
+                  >
+                    Run <Play className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting || !query.trim()}
+                    className="flex items-center gap-1.5 text-sm font-semibold bg-heading text-cream rounded-lg px-4 py-2 hover:bg-heading/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? 'Submitting…' : 'Submit'}
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+
+            {error && (
+              <div className="flex items-start gap-3 rounded-2xl border border-wrong/20 bg-wrong/5 p-5 mb-6">
+                <CircleAlert className="h-5 w-5 text-wrong shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-heading mb-1">Something went wrong.</p>
+                  <p className="text-sm text-body-text break-words">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {!error && result && (
+              <div className="rounded-2xl border border-heading/10 bg-surface p-6 mb-6">
+                <div className="flex items-start gap-3 mb-1">
+                  {isCorrect ? (
+                    <CircleCheck className="h-5 w-5 text-correct shrink-0 mt-0.5" />
+                  ) : (
+                    <CircleAlert className="h-5 w-5 text-wrong shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <p className="font-semibold text-heading">
+                      {isCorrect
+                        ? `Matches the sample — query returned ${result.length} row${result.length === 1 ? '' : 's'}.`
+                        : 'Not quite — check your results.'}
+                    </p>
+                    <p className="text-sm text-body-text mt-1">
+                      {isCorrect
+                        ? 'Press Submit to check it against every test case.'
+                        : 'Compare your output with the task above and try again.'}
+                    </p>
+                  </div>
+                </div>
+
+                {result.length === 0 ? (
+                  <p className="mt-4 text-sm text-body-text pl-8">Query ran successfully, but returned no rows.</p>
+                ) : (
+                  <div className="mt-5 overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-cream">
+                          {Object.keys(result[0]).map((col) => (
+                            <th key={col} className="text-left text-xs uppercase tracking-wide font-medium text-body-text px-3 py-2 first:rounded-l-lg last:rounded-r-lg">
+                              {col}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.map((row, i) => (
+                          <tr key={i} className="border-t border-heading/5">
+                            {Object.values(row).map((val, j) => (
+                              <td key={j} className="px-3 py-2.5 text-body-text">
+                                {val === null ? <span className="italic text-placeholder">NULL</span> : String(val)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!error && submitResults && (
+              <div className="rounded-2xl border border-heading/10 bg-surface p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  {allPassed ? (
+                    <CircleCheck className="h-5 w-5 text-correct shrink-0 mt-0.5" />
+                  ) : (
+                    <CircleAlert className="h-5 w-5 text-wrong shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <p className="font-semibold text-heading">
+                      {allPassed ? 'All test cases passed — lesson complete.' : 'Not quite — some test cases failed.'}
+                    </p>
+                    <p className="text-sm text-body-text mt-1">
+                      {allPassed
+                        ? (lesson.successNote || 'Your query worked on every case.')
+                        : 'The data behind each case stays hidden. Re-read the task, think about what else your query should handle, and try again.'}
+                    </p>
+                  </div>
+                </div>
+
+                <ul className="divide-y divide-heading/5 border-t border-heading/5">
+                  {submitResults.map((r) => (
+                    <li key={r.label} className="flex items-center justify-between py-3 text-sm">
+                      <span className="text-heading">{r.label}</span>
+                      <span
+                        aria-label={r.passed ? 'Passed' : 'Failed'}
+                        className={`font-semibold ${r.passed ? 'text-correct' : 'text-wrong'}`}
+                      >
+                        {r.passed ? '✓' : '✗'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                {allPassed && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTab('real')
+                      setRealOpened(true)
+                      window.scrollTo({ top: 0 })
+                    }}
+                    className="mt-5 flex items-center gap-2 rounded-lg border border-heading/15 px-4 py-2 text-sm font-semibold text-heading transition-colors hover:bg-heading/5"
+                  >
+                    Try it on real data <ArrowRight className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div
+        id="panel-real"
+        role="tabpanel"
+        aria-labelledby="tab-real"
+        hidden={tab !== 'real'}
+        className="flex-1"
+      >
+        {lesson.real ? (
+          realOpened && <RealChallenge lesson={lesson} />
+        ) : (
+          <div className="max-w-2xl mx-auto px-8 py-12">
+            <p className="text-body-text leading-relaxed">
+              This lesson is about ideas rather than a query, so it has no real-data challenge. Move on to the next
+              lesson when you're ready.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-heading/10">
         <div className="max-w-[1600px] mx-auto px-8 py-5 flex items-center justify-between text-sm">
-          <Link to={`/learn/${lessonType}`} className="flex items-center gap-2 text-caption hover:text-heading transition-colors">
+          <Link to="/learn/sql" className="flex items-center gap-2 text-body-text hover:text-heading transition-colors">
             <ArrowLeft className="h-4 w-4" /> Back to lessons
           </Link>
 
           <Link
-            to={nextLesson ? `/learn/${lessonType}/${nextLesson.id}` : `/learn/${lessonType}`}
+            to={nextUrl}
             aria-disabled={!canProceed}
             onClick={(e) => { if (!canProceed) e.preventDefault() }}
             className={`flex items-center gap-2 font-semibold transition-colors ${
-              canProceed ? 'text-heading hover:text-primary-accent' : 'text-placeholder cursor-not-allowed'
+              canProceed ? 'text-heading hover:text-primary-accent' : 'text-body-text opacity-50 cursor-not-allowed'
             }`}
           >
-            {nextLesson ? 'Next lesson' : 'Back to path'} <ArrowRight className="h-4 w-4" />
+            {nextLabel} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>

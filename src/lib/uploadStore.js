@@ -1,7 +1,3 @@
-// Keeps uploaded CSV files in the browser's IndexedDB so uploaded tables come back after a reload
-// or a notebook restart. Files never leave the device. Each record is
-// { id, tableName, fileName, bytes, addedAt }; the file's bytes are re-imported on every start.
-
 export const MAX_UPLOADS = 10
 export const MAX_TOTAL_UPLOAD_BYTES = 60 * 1024 * 1024
 

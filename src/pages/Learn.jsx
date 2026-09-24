@@ -82,7 +82,7 @@ function Learn() {
                   <p className="text-sm text-[#57534e] mb-5">{subject.desc}</p>
                   {subject.available ? (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-1.5 text-[#c2410c] font-medium">
+                      <span className="flex items-center gap-1.5 text-[#a8360a] font-medium">
                         <Check className="h-4 w-4" /> {subject.lessonCount} lesson{subject.lessonCount === 1 ? '' : 's'}
                       </span>
                       <span className="flex items-center gap-1 font-semibold text-[#1c1c1a]">

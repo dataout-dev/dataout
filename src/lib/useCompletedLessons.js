@@ -4,8 +4,6 @@ import { useAuth } from '../context/AuthContext'
 
 const NONE = new Set()
 
-// Lessons solved during this browser session, so a page that mounts right after a
-// solve (before the progress upsert is visible to a fresh read) still sees them.
 const solvedThisSession = new Map()
 
 export function useCompletedLessons() {

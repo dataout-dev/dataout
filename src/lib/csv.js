@@ -59,7 +59,7 @@ export function parseCsv(text, delimiter = ',') {
           i++
         } else inQuotes = false
       } else field += c
-    } else if (c === '"' && field === '') inQuotes = true // only a quote at the start of a field opens quotes
+    } else if (c === '"' && field === '') inQuotes = true
     else if (c === delimiter) {
       row.push(field)
       field = ''

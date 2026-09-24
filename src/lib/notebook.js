@@ -1,9 +1,3 @@
-// Notebook model and kernel helpers. Pure logic with no React, so it can be tested on its own.
-//
-// A notebook is { version, datasetId, cells }. Each cell is { id, type: 'sql' | 'markdown', source }.
-// The "kernel" is one shared sql.js database: a cell can use tables created by earlier cells,
-// like a Python notebook kernel. Only the cells are saved; outputs are recomputed by running them.
-
 export const NOTEBOOK_VERSION = 1
 export const DEFAULT_DATASET_ID = 'spotify-2024'
 export const STORAGE_KEY = 'dataout-notebook-v1'
@@ -77,11 +71,8 @@ export function starterNotebook(datasetId) {
   }
 }
 
-// ---------------------------------------------------------------- running SQL
-
 const totalChanges = (db) => db.exec('SELECT total_changes()')[0].values[0][0]
 
-// Runs one cell's SQL. Never throws: an error becomes { ok: false, error }.
 export function runSql(db, source, { maxRows = MAX_ROWS } = {}) {
   if (!source.trim()) return { ok: true, empty: true, results: [], changes: 0, ms: 0 }
 
@@ -104,8 +95,6 @@ export function runSql(db, source, { maxRows = MAX_ROWS } = {}) {
   }
 }
 
-// Runs SQL cells in order, numbering each run like In [n]. Markdown and blank cells are skipped.
-// With stopOnError, later cells are left unrun after the first failure.
 export function runCells(db, cells, startCount = 0, { stopOnError = false } = {}) {
   const outputs = {}
   let count = startCount
@@ -121,7 +110,6 @@ export function runCells(db, cells, startCount = 0, { stopOnError = false } = {}
   return { outputs, count }
 }
 
-// Tables (with columns and row counts) currently in the database.
 export function describeDb(db) {
   const found = db.exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
   const names = found.length ? found[0].values.map((row) => row[0]) : []
@@ -135,8 +123,6 @@ export function describeDb(db) {
   })
 }
 
-// ------------------------------------------------------------ save / export / import
-
 export function serializeNotebook(notebook) {
   return JSON.stringify(
     {
@@ -149,8 +135,6 @@ export function serializeNotebook(notebook) {
   )
 }
 
-// Validates untrusted text (an imported file or saved storage) and returns a notebook with fresh
-// cell ids. Throws an Error with a message that is safe to show to the user.
 export function parseNotebook(text) {
   if (typeof text !== 'string' || text.length > MAX_IMPORT_BYTES) {
     throw new Error('That file is too large to be a notebook.')
@@ -198,7 +182,6 @@ export function loadSavedNotebook() {
   }
 }
 
-// Returns false if the browser refused (storage full or unavailable).
 export function saveNotebook(notebook) {
   try {
     localStorage.setItem(STORAGE_KEY, serializeNotebook(notebook))

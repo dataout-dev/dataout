@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { safePath, rememberRedirect, forgetRedirect, takeRedirect } from '../lib/postLoginRedirect'
 import { ArrowLeft, Eye, EyeOff, Mail, GitHubMark, GoogleMark } from '../components/icons'
 
 function Login() {
@@ -11,9 +12,16 @@ function Login() {
   const [error, setError] = useState('')
   const { session } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = safePath(location.state?.from)
 
   useEffect(() => {
-    if (session) navigate('/learn')
+    if (from) rememberRedirect(from)
+    else forgetRedirect()
+  }, [from])
+
+  useEffect(() => {
+    if (session) navigate(takeRedirect() ?? '/learn', { replace: true })
   }, [session, navigate])
 
   const signInWithGoogle = () => {
@@ -42,7 +50,7 @@ function Login() {
       <div className="hidden lg:flex flex-col justify-end relative overflow-hidden bg-[#f1e4cd] px-16 py-16">
         <div className="absolute inset-0 bg-grid-plain pointer-events-none" />
         <div className="relative">
-          <p className="text-xs font-semibold text-[#e8622c] tracking-widest uppercase mb-4">The practical data path</p>
+          <p className="text-xs font-semibold text-[#a8360a] tracking-widest uppercase mb-4">The practical data path</p>
           <h2 className="font-display font-semibold text-5xl text-[#1c1c1a] leading-tight mb-6">
             Learn the query.<br />Understand the system.
           </h2>
@@ -140,7 +148,7 @@ function Login() {
           </form>
 
           <p className="text-sm text-caption text-center mt-8">
-            New to DataOut? <Link to="/signup" className="font-semibold text-heading underline">Sign up</Link>
+            New to DataOut? <Link to="/signup" state={location.state} className="font-semibold text-heading underline">Sign up</Link>
           </p>
         </div>
       </div>

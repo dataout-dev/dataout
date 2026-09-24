@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { lessons } from '../data/lessons'
@@ -12,7 +12,6 @@ function getDisplayName(session) {
 
 function Profile() {
   const { session } = useAuth()
-  const navigate = useNavigate()
   const [progress, setProgress] = useState([])
   const [name, setName] = useState('')
   const [editing, setEditing] = useState(false)
@@ -20,10 +19,7 @@ function Profile() {
   const [nameError, setNameError] = useState('')
 
   useEffect(() => {
-    if (!session) {
-      navigate('/login')
-      return
-    }
+    if (!session) return
 
     setName(getDisplayName(session))
 
@@ -37,7 +33,7 @@ function Profile() {
     }
 
     fetchProgress()
-  }, [session, navigate])
+  }, [session])
 
   if (!session) return null
 

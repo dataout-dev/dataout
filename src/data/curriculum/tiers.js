@@ -1,0 +1,48 @@
+export const tiers = [
+  {
+    id: 'beginner',
+    number: 1,
+    name: 'Beginner',
+    tagline: 'Read and filter data with confidence.',
+    audience: 'No SQL needed. You have never written a query.',
+    color: '#dcead9',
+    dataset: 'palmer-penguins',
+    datasetNote: 'Palmer Penguins, measurements of 344 penguins from Antarctica.',
+    examPassPercent: 70,
+  },
+  {
+    id: 'intermediate',
+    number: 2,
+    name: 'Intermediate',
+    tagline: 'Summarise data and combine tables.',
+    audience: 'You are comfortable with SELECT, WHERE and ORDER BY.',
+    color: '#cfe3f5',
+    dataset: 'chinook',
+    datasetNote: 'Chinook, a digital music store with artists, albums, tracks, customers and invoices.',
+    examPassPercent: 70,
+  },
+  {
+    id: 'advanced',
+    number: 3,
+    name: 'Advanced',
+    tagline: 'Answer harder questions with subqueries and window functions.',
+    audience: 'You are comfortable with JOIN and GROUP BY.',
+    color: '#f4e2d0',
+    dataset: 'nycflights13',
+    datasetNote: 'NYC flights 2013, every 10th flight that left New York, with airlines, airports and planes.',
+    examPassPercent: 70,
+  },
+  {
+    id: 'expert',
+    number: 4,
+    name: 'Expert',
+    tagline: 'Solve real analytics problems and understand what the database is doing.',
+    audience: 'You are fluent with window functions and CTEs.',
+    color: '#f5d3d3',
+    dataset: 'nycflights13',
+    datasetNote: 'NYC flights again, with hourly weather, plus Chinook for messier data.',
+    examPassPercent: 70,
+  },
+]
+
+export const tierById = Object.fromEntries(tiers.map((t) => [t.id, t]))

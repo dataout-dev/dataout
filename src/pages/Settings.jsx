@@ -2,6 +2,14 @@ import { Link } from 'react-router-dom'
 import { useTheme } from '../context/ThemeContext'
 import { ArrowLeft, Gear, ChevronDown } from '../components/icons'
 
+function SpecialTag() {
+  return (
+    <span className="rounded-full border border-primary-accent/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-heading">
+      Special edition
+    </span>
+  )
+}
+
 function Settings() {
   const { theme, setTheme, themes } = useTheme()
   const activeTheme = themes.find((t) => t.id === theme) || themes[0]
@@ -59,14 +67,17 @@ function Settings() {
             >
               {themes.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name}
+                  {t.special ? `${t.name} (special edition)` : t.name}
                 </option>
               ))}
             </select>
             <ChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-caption" />
           </div>
 
-          <p className="mt-3 text-sm text-body-text">{activeTheme.description}</p>
+          <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-body-text">
+            {activeTheme.special && <SpecialTag />}
+            {activeTheme.description}
+          </p>
 
           <div className="mt-6 grid sm:grid-cols-2 gap-3">
             {themes.map((t) => (
@@ -87,7 +98,10 @@ function Settings() {
                   ))}
                 </span>
                 <span>
-                  <span className="block text-sm font-semibold text-heading">{t.name}</span>
+                  <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-heading">
+                    {t.name}
+                    {t.special && <SpecialTag />}
+                  </span>
                   <span className="block text-xs text-caption">{t.description}</span>
                 </span>
               </button>

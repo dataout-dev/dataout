@@ -39,6 +39,13 @@ export const themes = [
     description: 'Warm amber tones for a cozy feel.',
     swatches: ['#fdf6e9', '#3d2b12', '#d99a2b'],
   },
+  {
+    id: 'endgame',
+    name: 'Endgame',
+    description: 'Deep cosmic indigo with a rosy-pink glow.',
+    swatches: ['#0f0826', '#604ac7', '#c88da5'],
+    special: true,
+  },
 ]
 
 const themeIds = new Set(themes.map((t) => t.id))
@@ -60,7 +67,6 @@ export function ThemeProvider({ children }) {
     try {
       localStorage.setItem(STORAGE_KEY, theme)
     } catch {
-      // localStorage unavailable — theme just won't persist across visits
     }
   }, [theme])
 

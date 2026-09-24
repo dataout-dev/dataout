@@ -40,8 +40,6 @@ import {
 
 const button =
   'inline-flex items-center gap-1.5 rounded-lg border border-heading/10 px-3 py-2 text-sm font-medium text-heading transition-colors hover:bg-heading/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent'
-// Attribution is a license requirement, so it uses the high-contrast text tokens (the accent
-// color is too faint for small text on some themes).
 const link = 'font-medium text-heading underline underline-offset-2 hover:opacity-80'
 
 
@@ -63,7 +61,6 @@ async function bootKernel(datasetId, datasets, ctx) {
       return false
     }
 
-    // Load the CSV files the user uploaded earlier (kept in this browser) into the fresh database.
     const problems = []
     const loaded = ctx.uploadsRef.current.map((upload) => {
       try {
@@ -131,7 +128,6 @@ function Playground() {
       try {
         uploadsRef.current = await listUploads()
       } catch {
-        // Browser storage unavailable: uploads still work for this visit, they just won't be kept.
       }
       if (cancelled) return
 
@@ -174,8 +170,6 @@ function Playground() {
     return () => clearTimeout(timer)
   }, [notebook])
 
-  // ------------------------------------------------------------------ kernel
-
   const restart = async ({ datasetId = notebook.datasetId, cells = notebook.cells, runAll = false } = {}) => {
     setKernel({ status: 'starting' })
     setNotice(null)
@@ -208,8 +202,6 @@ function Playground() {
     setOutputs((prev) => ({ ...prev, ...results }))
     setTables(describeDb(dbRef.current))
   }
-
-  // ------------------------------------------------------------------- cells
 
   const focusCell = (id) => {
     setTimeout(() => document.getElementById(`cell-input-${id}`)?.focus(), 0)
@@ -257,16 +249,12 @@ function Playground() {
     })
   }
 
-  // Moves focus to the next SQL cell, skipping rendered notes (they have no text box to type in).
-  // At the end of the notebook it adds a new SQL cell.
   const advanceFrom = (cell) => {
     const at = notebook.cells.findIndex((c) => c.id === cell.id)
     const next = notebook.cells.slice(at + 1).find((c) => c.type === 'sql')
     if (next) focusCell(next.id)
     else addCellAfter(notebook.cells[notebook.cells.length - 1].id)
   }
-
-  // ------------------------------------------------- dataset, export, import
 
   const changeDataset = async (value) => {
     const datasetId = value || null
@@ -292,8 +280,6 @@ function Playground() {
     anchor.click()
     URL.revokeObjectURL(url)
   }
-
-  // ------------------------------------------------------- uploaded CSV files
 
   const uploadCsv = async (event) => {
     const file = event.target.files?.[0]
@@ -352,7 +338,6 @@ function Playground() {
     try {
       await deleteUpload(upload.id)
     } catch {
-      // It was never saved, or storage is unavailable; removing it from this session is enough.
     }
     uploadsRef.current = uploadsRef.current.filter((u) => u.id !== upload.id)
     setUploads((prev) => prev.filter((u) => u.id !== upload.id))

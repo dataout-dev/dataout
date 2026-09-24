@@ -1,6 +1,3 @@
-// Every playground the site offers. The nav dropdown, the /playground overview page and the
-// card on each learning-path page read from this list, so adding Python later is one entry
-// here plus a route in App.jsx.
 export const playgrounds = [
   {
     id: 'sql',

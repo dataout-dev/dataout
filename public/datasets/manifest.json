@@ -19,6 +19,65 @@
         "Roughly 1 in 9 track, album or artist names lost their accented characters before this data reached us (for example Beyoncé appears as Beyoncï¿). That damage is in the original file and can't be repaired.",
         "Many numeric columns have missing values, which show up as NULL. For example, almost half of the songs have no SiriusXM spins."
       ]
+    },
+    {
+      "id": "palmer-penguins",
+      "name": "Palmer Penguins",
+      "description": "Body measurements of 344 penguins of three species, recorded on three islands in the Palmer Archipelago, Antarctica, from 2007 to 2009.",
+      "file": "penguins.sqlite",
+      "author": "Dr. Kristen Gorman and the Palmer Station LTER; packaged by Allison Horst, Alison Hill and Kristen Gorman",
+      "source": {
+        "name": "palmerpenguins",
+        "url": "https://allisonhorst.github.io/palmerpenguins/"
+      },
+      "license": {
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Converted from the CSV to a SQLite table named penguins, an id column added, and missing values (NA) stored as NULL.",
+      "notes": [
+        "A few penguins have missing measurements or no recorded sex. Those show up as NULL."
+      ]
+    },
+    {
+      "id": "chinook",
+      "name": "Chinook music store",
+      "description": "A digital media store: 275 artists, 347 albums, 3,503 tracks, 59 customers and 412 invoices, in 11 linked tables.",
+      "file": "chinook.sqlite",
+      "author": "Luis Rocha (Chinook Database)",
+      "source": {
+        "name": "GitHub",
+        "url": "https://github.com/lerocha/chinook-database"
+      },
+      "license": {
+        "name": "MIT",
+        "url": "https://opensource.org/license/mit"
+      },
+      "changes": "Used unchanged (Chinook_Sqlite.sqlite, release v1.4.5).",
+      "notes": [
+        "The music catalogue comes from real iTunes libraries. The customers, employees and sales are made up, so treat them as realistic sample data.",
+        "Table and column names use PascalCase, such as Track and TrackId. SQL doesn't care about upper or lower case here."
+      ]
+    },
+    {
+      "id": "nycflights13",
+      "name": "NYC flights 2013",
+      "description": "About 33,700 flights that left New York City in 2013 (every 10th flight), with airlines, airports, planes and hourly weather.",
+      "file": "nycflights13.sqlite",
+      "author": "Hadley Wickham (nycflights13 package). Original data from the US Bureau of Transportation Statistics and other US government sources.",
+      "source": {
+        "name": "nycflights13",
+        "url": "https://github.com/tidyverse/nycflights13"
+      },
+      "license": {
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Converted from CSV files (via the Rdatasets mirror) to SQLite tables. Missing values (NA) stored as NULL; the year and time_hour columns dropped; dewp, wind_dir, wind_gust and pressure dropped from weather; a flight_date column added to flights and a weather_date column to weather; only every 10th flight kept, to keep the download small.",
+      "notes": [
+        "Times such as dep_time are stored as HHMM numbers (517 means 5:17 am), as in the original.",
+        "Cancelled flights have no departure time, so dep_time and dep_delay are NULL for them."
+      ]
     }
   ]
 }

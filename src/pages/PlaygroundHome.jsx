@@ -62,7 +62,6 @@ function PlaygroundHome() {
               </>
             )
 
-            // The pastel backgrounds are fixed brand colors, so the text on them is fixed dark too.
             return playground.available ? (
               <Link
                 key={playground.id}

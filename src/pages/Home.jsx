@@ -33,7 +33,6 @@ const pillars = [
 function Home() {
   return (
     <div className="bg-cream">
-      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-fade pointer-events-none" />
         <div className="relative max-w-6xl mx-auto px-8 pt-16 pb-24 grid lg:grid-cols-2 gap-16 items-center">
@@ -115,7 +114,7 @@ function Home() {
                     <ExternalLink className="h-3.5 w-3.5 text-[#1c1c1a]/70" />
                   </div>
                   <p className="text-sm font-semibold text-[#1c1c1a] mb-0.5">SQL</p>
-                  <p className="text-[11px] text-[#c2410c] font-medium">Available now</p>
+                  <p className="text-[11px] text-[#a8360a] font-medium">Available now</p>
                 </Link>
 
                 <div className="bg-[#dcead9] rounded-xl p-3.5 flex flex-col">
@@ -144,7 +143,6 @@ function Home() {
         </div>
       </section>
 
-      {/* Feature strip */}
       <div className="border-y border-heading/10 bg-heading/[0.02]">
         <div className="max-w-6xl mx-auto px-8 py-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -162,7 +160,6 @@ function Home() {
         </div>
       </div>
 
-      {/* Coming soon */}
       <section className="max-w-6xl mx-auto px-8 py-20">
         <div className="flex items-start justify-between gap-6 mb-10">
           <div>
@@ -188,7 +185,6 @@ function Home() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="border-t border-heading/10">
         <div className="max-w-6xl mx-auto px-8 py-8 flex items-center justify-between">
           <div className="flex items-center gap-2.5">

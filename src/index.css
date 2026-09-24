@@ -42,6 +42,26 @@
   --color-wrong: #f87171;
   --color-surface: #1a231c;
 }
+:root[data-theme="endgame"] {
+  --color-cream: #0f0826;
+  --color-heading: #f2ecfd;
+  --color-body-text: #cbc1e8;
+  --color-caption: #a99dd2;
+  --color-placeholder: #7466a6;
+  --color-primary-accent: #c88da5;
+  --color-accent-dark: #e2b6c8;
+  --color-badge: #2c1267;
+  --color-correct: #4ade80;
+  --color-wrong: #ff7b8a;
+  --color-surface: #1a1040;
+}
+
+:root[data-theme="endgame"] .bg-grid-fade {
+  background-image:
+    radial-gradient(ellipse 55% 70% at 72% 0%, rgba(96, 74, 199, 0.4), transparent 70%),
+    linear-gradient(to right, color-mix(in srgb, var(--color-heading) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-heading) 6%, transparent) 1px, transparent 1px);
+}
 
 :root[data-theme="rosewater"] {
   --color-cream: #fdf1f3;
@@ -73,12 +93,12 @@
   --color-cream: #fdf6e9;
   --color-heading: #3d2b12;
   --color-body-text: #6b5535;
-  --color-caption: #8f7a57;
+  --color-caption: #74613f;
   --color-placeholder: #c2ae86;
-  --color-primary-accent: #d99a2b;
-  --color-accent-dark: #a06a12;
+  --color-primary-accent: #9a6208;
+  --color-accent-dark: #7a4d06;
   --color-badge: #f6e3b4;
-  --color-correct: #3f8f4f;
+  --color-correct: #2f7d40;
   --color-wrong: #c1442e;
 }
 

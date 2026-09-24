@@ -1,21 +1,3 @@
-// Builds public/datasets/spotify-2024.sqlite from the Kaggle CSV.
-//
-//   Dataset: "Most Streamed Spotify Songs 2024" by Nidula Elgiriyewithana, CC BY-SA 4.0
-//   https://www.kaggle.com/datasets/nelgiriyewithana/most-streamed-spotify-songs-2024
-//
-// Usage (download and unzip the CSV from Kaggle first; the raw CSV is not kept in the repo):
-//   node scripts/build-spotify-2024.mjs "path/to/Most Streamed Spotify Songs 2024.csv"
-//
-// Changes made to the original data (also listed in public/datasets/manifest.json, as CC BY-SA
-// requires us to say we modified it):
-//   - CSV converted to a SQLite table named `songs`; column names are snake_case
-//   - Text decoded as Windows-1252 (the file is not valid UTF-8)
-//   - Numbers stored as text with thousands separators ("390,470,936") converted to real numbers
-//   - Release dates converted from M/D/YYYY to ISO YYYY-MM-DD
-//   - `TIDAL Popularity` dropped (empty in every row)
-//   - Rows with a repeated ISRC removed (first occurrence kept)
-// Names whose accents were already destroyed in the source file are left exactly as they are.
-
 import fs from 'node:fs'
 import path from 'node:path'
 import initSqlJs from 'sql.js'

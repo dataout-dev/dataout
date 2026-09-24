@@ -1,8 +1,8 @@
-// src/pages/Signup.jsx
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { safePath, rememberRedirect, forgetRedirect, takeRedirect } from '../lib/postLoginRedirect'
 import { ArrowLeft, Eye, EyeOff, Mail, GitHubMark, GoogleMark, Sparkles } from '../components/icons'
 
 function Signup() {
@@ -14,9 +14,16 @@ function Signup() {
   const [message, setMessage] = useState('')
   const { session } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = safePath(location.state?.from)
 
   useEffect(() => {
-    if (session) navigate('/learn')
+    if (from) rememberRedirect(from)
+    else forgetRedirect()
+  }, [from])
+
+  useEffect(() => {
+    if (session) navigate(takeRedirect() ?? '/learn', { replace: true })
   }, [session, navigate])
 
   const signInWithGoogle = () => {
@@ -57,7 +64,7 @@ function Signup() {
       <div className="hidden lg:flex flex-col justify-end relative overflow-hidden bg-[#f1e4cd] px-16 py-16">
         <div className="absolute inset-0 bg-grid-plain pointer-events-none" />
         <div className="relative">
-          <p className="text-xs font-semibold text-[#e8622c] tracking-widest uppercase mb-4">Coming soon, except SQL</p>
+          <p className="text-xs font-semibold text-[#a8360a] tracking-widest uppercase mb-4">Coming soon, except SQL</p>
           <h2 className="font-display font-semibold text-5xl text-[#1c1c1a] leading-tight mb-6">
             Start with the skill that compounds.
           </h2>
@@ -177,7 +184,7 @@ function Signup() {
           </form>
 
           <p className="text-sm text-caption text-center mt-8">
-            Already have an account? <Link to="/login" className="font-semibold text-heading underline">Log in</Link>
+            Already have an account? <Link to="/login" state={location.state} className="font-semibold text-heading underline">Log in</Link>
           </p>
         </div>
       </div>

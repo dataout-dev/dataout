@@ -69,11 +69,8 @@ function Cell({
     el.style.height = `${el.scrollHeight}px`
   }, [])
 
-  // Grow with the content as the user types...
   useLayoutEffect(fitHeight, [cell.source, showEditor, fitHeight])
 
-  // ...and re-measure when the width changes (window resize, styles or fonts finishing loading),
-  // because the number of wrapped lines depends on the width.
   useEffect(() => {
     const el = textareaRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
