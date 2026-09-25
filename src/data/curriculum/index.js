@@ -3,6 +3,7 @@ import { beginner } from './beginner.js'
 import { intermediate } from './intermediate.js'
 import { advanced } from './advanced.js'
 import { expert } from './expert.js'
+import { realExtras } from './extras/index.js'
 
 export { tiers, tierById }
 
@@ -19,6 +20,7 @@ export const lessons = tiers.flatMap((tier) =>
     kind: lesson.kind ?? 'query',
     orderMatters: lesson.orderMatters ?? false,
     testCases: (lesson.cases ?? []).map(([label, data]) => ({ label, data })),
+    challenges: lesson.real ? [lesson.real, ...(realExtras[lesson.id] ?? [])] : [],
   }))
 )
 

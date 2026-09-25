@@ -124,11 +124,10 @@ for (const tier of tiers) {
       if (!(lesson.traps ?? []).length) line += ' (no traps listed)'
     }
 
-    if (lesson.real) {
-      const shape = checkReal(`${where} [real]`, lesson.real)
-      line += ` | real ${lesson.real.dataset} ${shape ?? ''}`
-    } else if (lesson.kind !== 'mcq') {
-      fail(where, 'missing real-data challenge')
+    if (lesson.kind !== 'mcq') {
+      if (lesson.challenges.length !== 3) fail(where, `needs 3 real-data challenges, has ${lesson.challenges.length}`)
+      const shapes = lesson.challenges.map((c, i) => checkReal(`${where} [real ${i + 1}]`, c) ?? '?')
+      line += ` | real ${shapes.join(' ')}`
     }
     console.log(line)
   }
@@ -137,7 +136,7 @@ for (const tier of tiers) {
 console.log('\n== Tier exams')
 for (const tier of tiers) {
   const questions = exams[tier.id] ?? []
-  if (questions.length < 4) fail(`exam-${tier.id}`, 'an exam needs at least 4 questions')
+  if (questions.length !== 10) fail(`exam-${tier.id}`, `an exam needs 10 questions, has ${questions.length}`)
   const total = questions.reduce((sum, q) => sum + q.points, 0)
   const seen = new Set()
   const shapes = []

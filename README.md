@@ -12,8 +12,8 @@ to WebAssembly), and the datasets are static files served with the app. The only
 
 | Area | What it does |
 | ---- | ------------ |
-| **Learn** (`/learn/sql`) | 41 SQL lessons in four tiers: Beginner (10), Intermediate (12), Advanced (10) and Expert (9). Each lesson has a written **Learn** tab, a **Practice** test on small made-up tables with hidden cases, and an **On real data** challenge. Lessons unlock one after another. |
-| **Tier exams** (`/learn/sql/exam/:tier`) | A separate page per tier with 4 or 5 questions on real data and no hints. Pass at 70% to unlock the next tier. |
+| **Learn** (`/learn/sql`) | 41 SQL lessons in four tiers: Beginner (10), Intermediate (12), Advanced (10) and Expert (9). Each lesson has a written **Learn** tab, a **Practice** test on small made-up tables with hidden cases, and three **On real data** challenges. Lessons unlock one after another. |
+| **Tier exams** (`/learn/sql/exam/:tier`) | A separate page per tier with 10 questions on real data and no hints. Pass at 70 points out of 100 to unlock the next tier. |
 | **Daily exercise** (`/exercise/sql`) | One real-world question a day on real data, picked from the date (UTC), with a walkthrough that unlocks after solving or after three attempts. |
 | **Playground** (`/playground/sql`) | A notebook for SQL: SQL and Markdown cells sharing one in-memory database, built-in datasets, CSV upload, and export/import of notebooks. |
 | **Accounts** | Email/password, Google and GitHub sign-in through Supabase. The lesson, exercise and playground pages and the profile need a login; the overview pages and Settings are public. |

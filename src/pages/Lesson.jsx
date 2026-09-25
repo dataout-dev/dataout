@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { useCompletedLessons } from '../lib/useCompletedLessons'
 import { isStepUnlocked } from '../lib/lessonAccess'
+import { loadExerciseProgress } from '../lib/exerciseProgress'
 import { loadLessonDoc } from '../lib/lessonDocs'
 import Markdown from '../components/Markdown'
 import { Feedback, QueryPanel, SchemaCard, WalkthroughPanel } from '../components/challenge/ChallengeParts'
@@ -21,6 +22,7 @@ import {
   RotateCcw,
   Table,
   Lightbulb,
+  Check,
   CircleCheck,
   CircleAlert,
 } from '../components/icons'
@@ -79,19 +81,23 @@ function LessonHeading({ tier, lesson, large = false }) {
   )
 }
 
-function RealChallenge({ lesson }) {
-  const real = lesson.real
+const realProgressId = (lessonId, index) => (index === 0 ? `lesson-real:${lessonId}` : `lesson-real:${lessonId}:${index + 1}`)
+
+function RealChallenge({ lesson, index, challenge: real, total, onSolved }) {
   const challenge = useChallenge({
     datasetId: real.dataset,
     reference: real.reference,
     orderMatters: real.orderMatters,
-    progressId: `lesson-real:${lesson.id}`,
+    progressId: realProgressId(lesson.id, index),
+    onSolved,
   })
 
   return (
-    <div className="flex-1 max-w-[1600px] mx-auto px-8 py-12 grid lg:grid-cols-[380px_1fr] gap-10 w-full items-start">
+    <div className="grid lg:grid-cols-[380px_1fr] gap-10 w-full items-start">
       <div className="text-left">
-        <p className="text-xs font-semibold tracking-widest uppercase text-primary-accent mb-3">On real data</p>
+        <p className="text-xs font-semibold tracking-widest uppercase text-primary-accent mb-3">
+          On real data{total > 1 ? ` · Challenge ${index + 1} of ${total}` : ''}
+        </p>
         <h2 className="font-display font-semibold text-3xl text-heading leading-[1.15] mb-5">{real.title}</h2>
 
         <div className="flex items-start gap-3 bg-surface rounded-2xl border border-heading/10 p-5 mb-6">
@@ -114,6 +120,49 @@ function RealChallenge({ lesson }) {
         <Feedback challenge={challenge} />
         <WalkthroughPanel challenge={challenge} walkthrough={real.walkthrough} reference={real.reference} subject="challenge" />
       </div>
+    </div>
+  )
+}
+
+function RealChallenges({ lesson }) {
+  const challenges = lesson.challenges
+  const [active, setActive] = useState(0)
+  const [solved, setSolved] = useState(() =>
+    challenges.map((_, i) => loadExerciseProgress(realProgressId(lesson.id, i)).solved)
+  )
+
+  return (
+    <div className="flex-1 max-w-[1600px] mx-auto px-8 py-12 w-full">
+      {challenges.length > 1 && (
+        <div role="tablist" aria-label="Real-data challenges" className="mb-8 flex flex-wrap gap-2">
+          {challenges.map((c, i) => (
+            <button
+              key={i}
+              type="button"
+              role="tab"
+              aria-selected={active === i}
+              onClick={() => setActive(i)}
+              className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition-colors ${
+                active === i
+                  ? 'border-primary-accent bg-badge text-heading'
+                  : 'border-heading/10 text-body-text hover:bg-heading/5 hover:text-heading'
+              }`}
+            >
+              {solved[i] && <Check className="h-3.5 w-3.5 text-correct" />}
+              Challenge {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <RealChallenge
+        key={active}
+        lesson={lesson}
+        index={active}
+        challenge={challenges[active]}
+        total={challenges.length}
+        onSolved={() => setSolved((prev) => prev.map((value, i) => (i === active ? true : value)))}
+      />
     </div>
   )
 }
@@ -672,8 +721,8 @@ function LessonView() {
         hidden={tab !== 'real'}
         className="flex-1"
       >
-        {lesson.real ? (
-          realOpened && <RealChallenge lesson={lesson} />
+        {lesson.challenges.length > 0 ? (
+          realOpened && <RealChallenges lesson={lesson} />
         ) : (
           <div className="max-w-2xl mx-auto px-8 py-12">
             <p className="text-body-text leading-relaxed">
