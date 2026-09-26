@@ -17,6 +17,7 @@ to WebAssembly) inside a Web Worker, so a runaway query can be stopped (or times
 | **Daily exercise** (`/exercise/sql`) | One real-world question a day on real data, picked from the date (UTC), with a walkthrough that unlocks after solving or after three attempts. |
 | **Playground** (`/playground/sql`) | A notebook for SQL: SQL and Markdown cells sharing one in-memory database, built-in datasets, CSV upload, and export/import of notebooks. |
 | **Profile** (`/profile`) | Your name, overall progress and badges for finished tiers, passed exams and milestones. |
+| **Python playground** (`/playground/python`) | A notebook for Python: Python and Markdown cells sharing one session, the built-in datasets as `rows('palmer-penguins')`, pandas and numpy loaded on first import, a Stop button, and export/import of notebooks. |
 | **Accounts** | Email/password, Google and GitHub sign-in through Supabase. The lesson, exercise and playground pages and the profile need a login; the overview pages and Settings are public. |
 | **Themes** | Nine themes in Settings, including three special editions (Endgame, Iron Man and Captain America). The choice is saved per browser. |
 
@@ -25,6 +26,7 @@ to WebAssembly) inside a Web Worker, so a runaway query can be stopped (or times
 - [React 19](https://react.dev), [React Router 7](https://reactrouter.com) and [Vite 8](https://vite.dev)
 - [Tailwind CSS 4](https://tailwindcss.com) (tokens defined in `src/index.css`)
 - [sql.js](https://github.com/sql-js/sql.js) for SQLite in the browser, run in a Web Worker (`src/workers/sqlWorker.js`, client in `src/lib/sqlWorkerClient.js`)
+- [Pyodide](https://pyodide.org) (Python compiled to WebAssembly) in a Web Worker for the Python playground (`src/workers/pythonWorker.js`), loaded from a CDN on first use
 - [CodeMirror 6](https://codemirror.net) for the SQL editor (syntax highlighting and table/column autocomplete), loaded on demand
 - [Supabase](https://supabase.com) (`@supabase/supabase-js`) for auth and progress
 - [react-markdown](https://github.com/remarkjs/react-markdown) with `remark-gfm` for lesson documents

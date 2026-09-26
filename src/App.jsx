@@ -21,6 +21,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import PostLoginRedirect from './components/PostLoginRedirect'
 
 const Playground = lazy(() => import('./pages/Playground'))
+const PythonPlayground = lazy(() => import('./pages/PythonPlayground'))
 
 function App() {
   return (
@@ -48,6 +49,16 @@ function App() {
               <ProtectedRoute>
                 <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the playground...</p>}>
                   <Playground />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/playground/python"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the playground...</p>}>
+                  <PythonPlayground />
                 </Suspense>
               </ProtectedRoute>
             }
