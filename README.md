@@ -29,3 +29,22 @@ to WebAssembly) inside a Web Worker, so a runaway query can be stopped (or times
 - [Supabase](https://supabase.com) (`@supabase/supabase-js`) for auth and progress
 - [react-markdown](https://github.com/remarkjs/react-markdown) with `remark-gfm` for lesson documents
 - [Oxlint](https://oxc.rs/docs/guide/usage/linter) for linting
+
+## Data and credits
+
+Every dataset lives in `public/datasets/` and is described, with its author, source, licence and the changes made to it, in `public/datasets/manifest.json`. The same details are shown next to the data in the playground. If you reuse a dataset, keep its attribution and licence.
+
+| Dataset | Author | Source | Licence | Changes |
+| ------- | ------ | ------ | ------- | ------- |
+| Most Streamed Spotify Songs 2024 | Nidula Elgiriyewithana | [Kaggle](https://www.kaggle.com/datasets/nelgiriyewithana/most-streamed-spotify-songs-2024) | [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) | Modified: converted to SQLite, text decoding fixed, numbers and dates cleaned, one empty column and 2 duplicate rows removed. |
+| Palmer Penguins | Dr. Kristen Gorman and the Palmer Station LTER; packaged by Allison Horst, Alison Hill and Kristen Gorman | [palmerpenguins](https://allisonhorst.github.io/palmerpenguins/) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Converted to SQLite, an `id` column added, missing values stored as NULL. |
+| Chinook music store | Luis Rocha | [chinook-database](https://github.com/lerocha/chinook-database) | [MIT](https://opensource.org/license/mit) | Used unchanged (release v1.4.5). |
+| NYC flights 2013 | Hadley Wickham; original data from the US Bureau of Transportation Statistics and other US government sources | [nycflights13](https://github.com/tidyverse/nycflights13) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Converted to SQLite, some columns dropped and two date columns added, every 10th flight kept. |
+
+The Spotify data is licensed under CC BY-SA 4.0, so the modified database in this repository is shared under the same licence. The Chinook customers, employees and sales are made up; only the music catalogue comes from real libraries.
+
+Third-party software keeps its own licences, including [sql.js](https://github.com/sql-js/sql.js) (MIT), [CodeMirror](https://codemirror.net) (MIT), [React](https://react.dev) (MIT) and the other packages listed in `package.json`.
+
+## Licence
+
+The code and lesson text in this repository are released under the [MIT License](LICENSE). The MIT licence covers the code and lessons only. The datasets are covered by the licences in the table above, not by the MIT licence.
