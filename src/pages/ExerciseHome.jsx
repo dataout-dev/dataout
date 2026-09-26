@@ -36,7 +36,7 @@ function ExerciseHome() {
 
       <section className="mx-auto max-w-5xl px-8 pb-24">
         <div className="mb-8">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary-accent">Today’s exercises</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-accent-dark">Today’s exercises</p>
           <h2 className="font-display text-3xl font-semibold text-heading">Pick a subject.</h2>
         </div>
 

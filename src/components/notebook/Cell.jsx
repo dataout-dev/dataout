@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Markdown from '../Markdown'
 import ResultTable from './ResultTable'
+import SqlEditor from '../editor/SqlEditor'
 import { Play, ArrowUp, ArrowDown, Plus, Trash, Pencil, Check, CircleAlert } from '../icons'
 
 const iconButton =
@@ -56,6 +57,7 @@ function Cell({
   onMove,
   onAddBelow,
   onDelete,
+  schema,
 }) {
   const textareaRef = useRef(null)
   const [editing, setEditing] = useState(() => cell.source.trim() === '')
@@ -175,20 +177,35 @@ function Cell({
               </div>
             </div>
 
-            {showEditor ? (
+            {showEditor && isSql ? (
+              <div className="flex">
+                <SqlEditor
+                  value={cell.source}
+                  onChange={onChange}
+                  onRun={onRun}
+                  onRunAndAdvance={onRunAndAdvance}
+                  schema={schema}
+                  variant="theme"
+                  showLineNumbers={false}
+                  fontSize="14px"
+                  padding="12px 16px 12px 4px"
+                  minHeight="48px"
+                  elementId={`cell-input-${cell.id}`}
+                  ariaLabel={`SQL cell ${index + 1}`}
+                  placeholder="-- write SQL here, then press Shift+Enter"
+                />
+              </div>
+            ) : showEditor ? (
               <textarea
                 ref={textareaRef}
                 id={`cell-input-${cell.id}`}
                 value={cell.source}
                 onChange={(e) => onChange(e.target.value)}
                 onKeyDown={handleKeyDown}
-                aria-label={`${isSql ? 'SQL' : 'Markdown'} cell ${index + 1}`}
-                spellCheck={!isSql}
+                aria-label={`Markdown cell ${index + 1}`}
                 rows={1}
-                placeholder={isSql ? '-- write SQL here, then press Shift+Enter' : 'Write notes in Markdown...'}
-                className={`block w-full resize-none overflow-hidden bg-transparent px-4 py-3 text-sm leading-6 text-heading placeholder:text-placeholder focus:outline-none ${
-                  isSql ? 'font-mono' : ''
-                }`}
+                placeholder="Write notes in Markdown..."
+                className="block w-full resize-none overflow-hidden bg-transparent px-4 py-3 text-sm leading-6 text-heading placeholder:text-placeholder focus:outline-none"
               />
             ) : (
               <div className="cursor-text px-4 py-3 [&>:last-child]:mb-0" onDoubleClick={() => setEditing(true)}>

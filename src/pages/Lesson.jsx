@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, Link, Navigate } from 'react-router-dom'
-import { loadSql } from '../lib/sqlEngine'
 import { lessonById, pathIndex, pathUrl, sqlPath, tierById } from '../data/lessons'
 import { formatQueryResult, resultsMatch } from '../lib/sqlHelpers'
-import { evaluateLesson, expectedFor, openCase } from '../lib/lessonGrading'
+import { isStopped, sharedSql } from '../lib/sqlWorkerClient'
 import { useChallenge } from '../lib/useChallenge'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
@@ -12,6 +11,7 @@ import { isStepUnlocked } from '../lib/lessonAccess'
 import { loadExerciseProgress } from '../lib/exerciseProgress'
 import { loadLessonDoc } from '../lib/lessonDocs'
 import Markdown from '../components/Markdown'
+import SqlEditor from '../components/editor/SqlEditor'
 import { Feedback, QueryPanel, SchemaCard, WalkthroughPanel } from '../components/challenge/ChallengeParts'
 import {
   ArrowLeft,
@@ -57,7 +57,7 @@ function LessonHeading({ tier, lesson, large = false }) {
           <Database className="h-5 w-5" />
         </span>
         <div>
-          <p className="text-xs font-semibold tracking-widest uppercase text-primary-accent">
+          <p className="text-xs font-semibold tracking-widest uppercase text-accent-dark">
             SQL · {tier.name} / Lesson {String(lesson.number).padStart(2, '0')}
           </p>
           <p className="text-sm text-body-text">{lesson.topic}</p>
@@ -95,7 +95,7 @@ function RealChallenge({ lesson, index, challenge: real, total, onSolved }) {
   return (
     <div className="grid lg:grid-cols-[380px_1fr] gap-10 w-full items-start">
       <div className="text-left">
-        <p className="text-xs font-semibold tracking-widest uppercase text-primary-accent mb-3">
+        <p className="text-xs font-semibold tracking-widest uppercase text-accent-dark mb-3">
           On real data{total > 1 ? ` · Challenge ${index + 1} of ${total}` : ''}
         </p>
         <h2 className="font-display font-semibold text-3xl text-heading leading-[1.15] mb-5">{real.title}</h2>
@@ -167,6 +167,10 @@ function RealChallenges({ lesson }) {
   )
 }
 
+const PRACTICE_DB = 'lesson-practice'
+
+const gradingPayload = ({ schema, solution, testCases, orderMatters }) => ({ schema, solution, testCases, orderMatters })
+
 function LessonView() {
   const { lessonType, lessonId } = useParams()
   const lesson = lessonType === 'sql' ? lessonById[lessonId] : undefined
@@ -177,7 +181,6 @@ function LessonView() {
 
   const { session } = useAuth()
   const { completedIds, loaded, markCompleted } = useCompletedLessons()
-  const dbRef = useRef(null)
   const sampleExpectedRef = useRef([])
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
@@ -186,6 +189,7 @@ function LessonView() {
   const [schema, setSchema] = useState([])
   const [submitResults, setSubmitResults] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [running, setRunning] = useState(false)
   const [tab, setTab] = useState('learn')
   const [realOpened, setRealOpened] = useState(false)
   const [doc, setDoc] = useState(undefined)
@@ -195,31 +199,26 @@ function LessonView() {
   const isMcq = lesson?.kind === 'mcq'
 
   const initializeDb = useCallback(async () => {
-    const SQL = await loadSql()
-    dbRef.current?.close()
-    const first = lesson.testCases[0]
-    const db = openCase(SQL, lesson, first)
-    dbRef.current = db
-    sampleExpectedRef.current = expectedFor(SQL, lesson, first)
-
-    const tablesResult = db.exec("SELECT name FROM sqlite_master where type='table';")
-    const tableNames = tablesResult.length > 0 ? tablesResult[0].values.map((row) => row[0]) : []
-
-    setSchema(
-      tableNames.map((tableName) => {
-        const infoResult = db.exec(`PRAGMA table_info(${tableName});`)
-        const columns = infoResult.length > 0 ? infoResult[0].values.map((row) => ({ name: row[1], type: row[2] })) : []
-        return { tableName, columns }
-      })
-    )
+    try {
+      const { tables, expected } = await sharedSql().call(
+        'lesson.open',
+        { id: PRACTICE_DB, lesson: gradingPayload(lesson) },
+        { remember: PRACTICE_DB }
+      )
+      sampleExpectedRef.current = expected
+      setSchema(tables)
+    } catch (err) {
+      if (!isStopped(err)) setError(err.message)
+    }
   }, [lesson])
 
   useEffect(() => {
     if (!lesson || isMcq) return
     initializeDb()
     return () => {
-      dbRef.current?.close()
-      dbRef.current = null
+      const client = sharedSql()
+      client.forget(PRACTICE_DB)
+      client.call('db.close', { id: PRACTICE_DB }).catch(() => {})
     }
   }, [lesson, isMcq, initializeDb])
 
@@ -258,17 +257,21 @@ function LessonView() {
     }
   }
 
-  const runQuery = () => {
+  const runQuery = async () => {
+    if (running || submitting || !query.trim()) return
     setError('')
     setResult(null)
     setIsCorrect(null)
     setSubmitResults(null)
+    setRunning(true)
     try {
-      const rows = formatQueryResult(dbRef.current.exec(query))
+      const rows = formatQueryResult(await sharedSql().call('db.exec', { id: PRACTICE_DB, sql: query }))
       setResult(rows)
       setIsCorrect(resultsMatch(rows, sampleExpectedRef.current, lesson.orderMatters))
     } catch (err) {
-      setError(err.message)
+      if (!isStopped(err)) setError(err.message)
+    } finally {
+      setRunning(false)
     }
   }
 
@@ -279,12 +282,11 @@ function LessonView() {
     setIsCorrect(null)
     setSubmitResults(null)
     try {
-      const SQL = await loadSql()
-      const results = evaluateLesson(SQL, lesson, query)
+      const results = await sharedSql().call('lesson.evaluate', { lesson: gradingPayload(lesson), query })
       setSubmitResults(results)
       if (results.every((r) => r.passed)) await complete()
     } catch (err) {
-      setError(err.message)
+      if (!isStopped(err)) setError(err.message)
     } finally {
       setSubmitting(false)
     }
@@ -329,13 +331,11 @@ function LessonView() {
   const statusStyles = {
     READY: 'bg-cream text-body-text',
     CHECKING: 'bg-cream text-body-text',
-    'SAMPLE OK': 'bg-cream text-primary-accent',
+    'SAMPLE OK': 'bg-cream text-accent-dark',
     PASSED: 'bg-correct/10 text-correct',
     RETRY: 'bg-wrong/10 text-wrong',
     ERROR: 'bg-wrong/10 text-wrong',
   }
-
-  const gutterLines = Math.max(query.split('\n').length, 16)
 
   return (
     <div className="bg-cream min-h-screen flex flex-col">
@@ -548,25 +548,14 @@ function LessonView() {
               </div>
 
               <div className="flex bg-[#14161c]">
-                <div className="select-none text-right pl-5 pr-3 py-5 text-sm leading-7 text-white/25 font-mono">
-                  {Array.from({ length: gutterLines }).map((_, i) => (
-                    <div key={i}>{i + 1}</div>
-                  ))}
-                </div>
-                <textarea
+                <SqlEditor
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                      e.preventDefault()
-                      runQuery()
-                    }
-                  }}
-                  rows={16}
-                  spellCheck={false}
-                  aria-label="SQL query"
+                  onChange={setQuery}
+                  onRun={runQuery}
+                  schema={schema}
+                  minLines={16}
                   placeholder="-- write your SQL query here"
-                  className="flex-1 min-w-0 resize-none bg-transparent py-5 pr-5 text-base leading-7 text-white font-mono placeholder:text-white/30 focus:outline-none"
+                  ariaLabel="SQL query"
                 />
               </div>
 
@@ -581,9 +570,18 @@ function LessonView() {
                   >
                     <RotateCcw className="h-3.5 w-3.5" /> Reset
                   </button>
+                  {(running || submitting) && (
+                    <button
+                      onClick={() => sharedSql().stop()}
+                      className="flex items-center gap-1.5 text-sm font-medium text-wrong border border-wrong/30 rounded-lg px-3.5 py-2 hover:bg-wrong/5 transition-colors"
+                    >
+                      Stop
+                    </button>
+                  )}
                   <button
                     onClick={runQuery}
-                    className="flex items-center gap-1.5 text-sm font-medium text-heading border border-heading/10 rounded-lg px-3.5 py-2 hover:bg-heading/5 transition-colors"
+                    disabled={running || submitting || !query.trim()}
+                    className="flex items-center gap-1.5 text-sm font-medium text-heading border border-heading/10 rounded-lg px-3.5 py-2 hover:bg-heading/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Run <Play className="h-3 w-3" />
                   </button>

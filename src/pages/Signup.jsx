@@ -91,7 +91,7 @@ function Signup() {
             <span className="font-display font-semibold text-heading text-lg">DataOut</span>
           </div>
 
-          <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-3">Start building</p>
+          <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-3">Start building</p>
           <h1 className="font-display font-semibold text-4xl text-heading leading-tight mb-3">
             Create your account.
           </h1>

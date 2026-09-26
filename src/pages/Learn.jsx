@@ -58,7 +58,7 @@ function Learn() {
       <section className="max-w-5xl mx-auto px-8 pb-24">
         <div className="flex items-end justify-between gap-6 mb-8">
           <div>
-            <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-3">Learning tracks</p>
+            <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-3">Learning tracks</p>
             <h2 className="font-display font-semibold text-3xl text-heading">Pick a place to start.</h2>
           </div>
           <p className="hidden sm:block text-sm text-caption whitespace-nowrap mb-1">One skill at a time.</p>

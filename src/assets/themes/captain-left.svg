@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 900" fill="none">
+  <g transform="translate(300 0) scale(-1 1)">
+    <g opacity=".5">
+      <path d="M300 0 H236 L0 236 V300Z" fill="#e63946" opacity=".6"/>
+      <path d="M300 90 H262 L0 352 V390Z" fill="#f4f7ff" opacity=".5"/>
+      <path d="M300 180 H288 L0 468 V480Z" fill="#e63946" opacity=".6"/>
+    </g>
+    <g opacity=".45">
+      <path d="M300 520 H236 L0 756 V820Z" fill="#2f6fe0" opacity=".7"/>
+      <path d="M300 640 H262 L0 902 V900H0Z" fill="#f4f7ff" opacity=".5"/>
+    </g>
+    <g fill="#f4f7ff">
+      <path opacity=".6" d="M120 520 l10 30 31 0 -25 18 10 30 -26 -18 -26 18 10 -30 -25 -18 31 0Z"/>
+      <path opacity=".4" d="M228 400 l6 18 19 0 -15 11 6 18 -16 -11 -16 11 6 -18 -15 -11 19 0Z"/>
+      <path opacity=".35" d="M60 620 l5 14 15 0 -12 9 5 14 -13 -9 -13 9 5 -14 -12 -9 15 0Z"/>
+    </g>
+  </g>
+</svg>

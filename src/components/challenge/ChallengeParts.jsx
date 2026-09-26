@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import SqlEditor from '../editor/SqlEditor'
 import Markdown from '../Markdown'
 import ResultTable from '../notebook/ResultTable'
 import { failureMessages } from '../../lib/exerciseGrading'
@@ -81,8 +82,7 @@ const statusStyles = {
 }
 
 export function QueryPanel({ challenge, rows = 14 }) {
-  const { query, setQuery, ready, busy, status, run, submit } = challenge
-  const gutterLines = Math.max(query.split('\n').length, rows)
+  const { data, query, setQuery, ready, busy, status, run, submit, stop } = challenge
 
   return (
     <div className="bg-surface rounded-2xl border border-heading/10 shadow-sm overflow-hidden mb-6">
@@ -97,31 +97,28 @@ export function QueryPanel({ challenge, rows = 14 }) {
       </div>
 
       <div className="flex bg-[#14161c]">
-        <div className="select-none text-right pl-5 pr-3 py-5 text-sm leading-7 text-white/25 font-mono">
-          {Array.from({ length: gutterLines }).map((_, i) => (
-            <div key={i}>{i + 1}</div>
-          ))}
-        </div>
-        <textarea
+        <SqlEditor
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-              e.preventDefault()
-              run()
-            }
-          }}
-          rows={rows}
-          spellCheck={false}
-          aria-label="SQL query"
+          onChange={setQuery}
+          onRun={run}
+          schema={data.schema}
+          minLines={rows}
           placeholder="-- write your SQL query here"
-          className="flex-1 min-w-0 resize-none bg-transparent py-5 pr-5 text-base leading-7 text-white font-mono placeholder:text-white/30 focus:outline-none"
+          ariaLabel="SQL query"
         />
       </div>
 
       <div className="flex items-center justify-between px-5 py-3.5 border-t border-heading/10">
         <span className="hidden sm:flex items-center gap-1.5 text-xs text-body-text">Ctrl + Enter to run</span>
         <div className="flex items-center gap-2.5 ml-auto">
+          {busy && (
+            <button
+              onClick={stop}
+              className="flex items-center gap-1.5 text-sm font-medium text-wrong border border-wrong/30 rounded-lg px-3.5 py-2 hover:bg-wrong/5 transition-colors"
+            >
+              Stop
+            </button>
+          )}
           <button
             onClick={run}
             disabled={!ready || !!busy || !query.trim()}
@@ -219,7 +216,7 @@ export function WalkthroughPanel({ challenge, walkthrough, reference, subject = 
   if (shown) {
     return (
       <div className="rounded-2xl border border-heading/10 bg-surface p-6">
-        <p className="text-xs font-semibold tracking-widest uppercase text-primary-accent mb-3">Walkthrough</p>
+        <p className="text-xs font-semibold tracking-widest uppercase text-accent-dark mb-3">Walkthrough</p>
         <Markdown>{walkthrough}</Markdown>
         {progress.solved ? (
           <>

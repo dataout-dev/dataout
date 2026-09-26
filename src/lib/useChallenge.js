@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchDatasetBytes, fetchManifest } from './datasets'
-import { gradeResult, runExerciseQuery } from './exerciseGrading'
+import { gradeResult } from './exerciseGrading'
 import { ATTEMPTS_TO_GIVE_UP, loadExerciseProgress, saveExerciseProgress } from './exerciseProgress'
-import { loadSql } from './sqlEngine'
+import { isStopped, sharedSql } from './sqlWorkerClient'
 
 export function useDatasetData(datasetId) {
   const [attempt, setAttempt] = useState(0)
@@ -13,26 +13,15 @@ export function useDatasetData(datasetId) {
 
     async function load() {
       try {
-        const [SQL, datasets] = await Promise.all([loadSql(), fetchManifest()])
+        const datasets = await fetchManifest()
         const meta = datasets.find((d) => d.id === datasetId)
         if (!meta) throw new Error(`The dataset "${datasetId}" isn't available.`)
         const bytes = await fetchDatasetBytes(meta)
+        const schema = await sharedSql().call('dataset.load', { id: meta.id, bytes }, { remember: `dataset:${meta.id}` })
 
-        const db = new SQL.Database(bytes)
-        let schema
-        try {
-          const names = db.exec("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
-          schema = (names[0]?.values ?? []).map(([tableName]) => {
-            const info = db.exec(`PRAGMA table_info("${tableName}")`)
-            return { tableName, columns: (info[0]?.values ?? []).map((row) => ({ name: row[1], type: row[2] })) }
-          })
-        } finally {
-          db.close()
-        }
-
-        if (!cancelled) setData({ status: 'ready', SQL, bytes, meta, schema })
+        if (!cancelled) setData({ status: 'ready', meta, schema })
       } catch (err) {
-        if (!cancelled) setData({ status: 'error', message: err.message })
+        if (!cancelled && !isStopped(err)) setData({ status: 'error', message: err.message })
       }
     }
 
@@ -80,8 +69,6 @@ export function useChallenge({ datasetId, reference, orderMatters, progressId, o
 
   const ready = data.status === 'ready'
 
-  const nextTick = () => new Promise((resolve) => setTimeout(resolve, 0))
-
   const clearFeedback = () => {
     setError('')
     setResult(null)
@@ -92,11 +79,10 @@ export function useChallenge({ datasetId, reference, orderMatters, progressId, o
     if (!ready || busy || !query.trim()) return
     setBusy('run')
     clearFeedback()
-    await nextTick()
     try {
-      setResult(runExerciseQuery(data.SQL, data.bytes, query))
+      setResult(await sharedSql().call('dataset.query', { id: data.meta.id, query }))
     } catch (err) {
-      setError(err.message)
+      if (!isStopped(err)) setError(err.message)
     } finally {
       setBusy(null)
     }
@@ -106,10 +92,8 @@ export function useChallenge({ datasetId, reference, orderMatters, progressId, o
     if (!ready || busy || !query.trim()) return
     setBusy('submit')
     clearFeedback()
-    await nextTick()
     try {
-      const actual = runExerciseQuery(data.SQL, data.bytes, query)
-      const expected = runExerciseQuery(data.SQL, data.bytes, reference)
+      const { actual, expected } = await sharedSql().call('dataset.grade', { id: data.meta.id, query, reference })
       const graded = gradeResult(actual, expected, orderMatters)
 
       setResult(actual)
@@ -123,11 +107,13 @@ export function useChallenge({ datasetId, reference, orderMatters, progressId, o
         updateProgress({ attempts, draft: query })
       }
     } catch (err) {
-      setError(err.message)
+      if (!isStopped(err)) setError(err.message)
     } finally {
       setBusy(null)
     }
   }
+
+  const stop = () => sharedSql().stop()
 
   const status = error
     ? 'ERROR'
@@ -158,6 +144,7 @@ export function useChallenge({ datasetId, reference, orderMatters, progressId, o
     updateProgress,
     run,
     submit,
+    stop,
     canOpenWalkthrough: progress.solved || progress.attempts >= ATTEMPTS_TO_GIVE_UP,
     attemptsLeft: Math.max(0, ATTEMPTS_TO_GIVE_UP - progress.attempts),
   }

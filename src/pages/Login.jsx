@@ -73,7 +73,7 @@ function Login() {
             <span className="font-display font-semibold text-heading text-lg">DataOut</span>
           </div>
 
-          <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-3">Welcome back</p>
+          <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-3">Welcome back</p>
           <h1 className="font-display font-semibold text-4xl text-heading leading-tight mb-3">
             Pick up where<br />you left off.
           </h1>

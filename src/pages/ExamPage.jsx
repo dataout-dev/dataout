@@ -26,7 +26,7 @@ function ExamQuestion({ tier, question, number, onSolved }) {
   return (
     <div className="grid gap-10 lg:grid-cols-[380px_1fr] items-start">
       <div className="text-left">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary-accent">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-accent-dark">
           Question {number} · {question.points} points
         </p>
 

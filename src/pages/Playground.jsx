@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { loadSql } from '../lib/sqlEngine'
+import { NO_SESSION, createSqlClient, isStopped } from '../lib/sqlWorkerClient'
 import { fetchManifest, fetchDatasetBytes } from '../lib/datasets'
-import { importCsv, MAX_UPLOAD_BYTES } from '../lib/csvImport'
+import { MAX_UPLOAD_BYTES } from '../lib/csvImport'
 import {
   MAX_TOTAL_UPLOAD_BYTES,
   MAX_UPLOADS,
@@ -14,12 +14,10 @@ import {
   DEFAULT_DATASET_ID,
   MAX_CELLS,
   MAX_IMPORT_BYTES,
-  describeDb,
   loadSavedNotebook,
   newCell,
   newId,
   parseNotebook,
-  runCells,
   saveNotebook,
   serializeNotebook,
   starterNotebook,
@@ -33,6 +31,7 @@ import {
   Play,
   Plus,
   RotateCcw,
+  X,
   Table,
   Trash,
   Upload,
@@ -43,51 +42,61 @@ const button =
 const link = 'font-medium text-heading underline underline-offset-2 hover:opacity-80'
 
 
+const KERNEL = 'kernel'
+const KERNEL_TIMEOUT_MS = 30000
+const IMPORT_TIMEOUT_MS = 60000
+
 async function bootKernel(datasetId, datasets, ctx) {
   const bootId = ++ctx.bootIdRef.current
+  const stale = () => bootId !== ctx.bootIdRef.current
+  const client = ctx.clientRef.current
   try {
-    const SQL = await loadSql()
-    let db
+    let bytes = null
     if (datasetId) {
       const dataset = datasets.find((d) => d.id === datasetId)
       if (!dataset) throw new Error(`The dataset "${datasetId}" isn't available.`)
-      db = new SQL.Database(await fetchDatasetBytes(dataset))
-    } else {
-      db = new SQL.Database()
+      bytes = await fetchDatasetBytes(dataset)
     }
+    if (stale()) return false
 
-    if (bootId !== ctx.bootIdRef.current) {
-      db.close()
-      return false
-    }
+    await client.call('db.open', { id: KERNEL, bytes })
+    if (stale()) return false
 
     const problems = []
-    const loaded = ctx.uploadsRef.current.map((upload) => {
+    const loaded = []
+    for (const upload of ctx.uploadsRef.current) {
+      if (stale()) return false
       try {
-        const summary = importCsv(db, upload.bytes, { fileName: upload.fileName, tableName: upload.tableName })
+        const summary = await client.call(
+          'db.importCsv',
+          { id: KERNEL, bytes: upload.bytes, fileName: upload.fileName, tableName: upload.tableName },
+          { timeout: IMPORT_TIMEOUT_MS }
+        )
         if (summary.renamed) {
           problems.push(
             `The uploaded table "${upload.tableName}" was renamed "${summary.tableName}" because this database already has a table with that name.`
           )
         }
-        return { id: upload.id, fileName: upload.fileName, tableName: summary.tableName }
+        loaded.push({ id: upload.id, fileName: upload.fileName, tableName: summary.tableName })
       } catch (err) {
+        if (isStopped(err)) throw err
         problems.push(`Couldn't reload "${upload.fileName}": ${err.message}`)
-        return { id: upload.id, fileName: upload.fileName, tableName: null }
+        loaded.push({ id: upload.id, fileName: upload.fileName, tableName: null })
       }
-    })
+    }
 
-    ctx.dbRef.current?.close()
-    ctx.dbRef.current = db
+    const tables = await client.call('db.describe', { id: KERNEL })
+    if (stale()) return false
+
     ctx.counterRef.current = 0
     ctx.setOutputs({})
     ctx.setUploads(loaded)
     if (problems.length) ctx.setNotice(problems.join(' '))
-    ctx.setTables(describeDb(db))
+    ctx.setTables(tables)
     ctx.setKernel({ status: 'ready' })
     return true
   } catch (err) {
-    if (bootId === ctx.bootIdRef.current) ctx.setKernel({ status: 'error', error: err.message })
+    if (!stale() && !isStopped(err)) ctx.setKernel({ status: 'error', error: err.message })
     return false
   }
 }
@@ -101,8 +110,9 @@ function Playground() {
   const [notice, setNotice] = useState(null)
   const [saved, setSaved] = useState(true)
   const [uploads, setUploads] = useState([])
+  const [running, setRunning] = useState(false)
 
-  const dbRef = useRef(null)
+  const clientRef = useRef(null)
   const bootIdRef = useRef(0)
   const counterRef = useRef(0)
   const uploadsRef = useRef([])
@@ -112,6 +122,15 @@ function Playground() {
 
   const dataset = datasets.find((d) => d.id === notebook.datasetId) ?? null
   const ready = kernel.status === 'ready'
+
+  useEffect(() => {
+    const client = createSqlClient({ timeoutMs: KERNEL_TIMEOUT_MS })
+    clientRef.current = client
+    return () => {
+      client.dispose()
+      clientRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -140,7 +159,7 @@ function Playground() {
       }
       await bootKernel(available ? wanted : null, list, {
         bootIdRef,
-        dbRef,
+        clientRef,
         counterRef,
         uploadsRef,
         setOutputs,
@@ -157,14 +176,6 @@ function Playground() {
     }
   }, [])
 
-  useEffect(
-    () => () => {
-      dbRef.current?.close()
-      dbRef.current = null
-    },
-    []
-  )
-
   useEffect(() => {
     const timer = setTimeout(() => setSaved(saveNotebook(notebook)), 400)
     return () => clearTimeout(timer)
@@ -175,7 +186,7 @@ function Playground() {
     setNotice(null)
     const ok = await bootKernel(datasetId, datasets, {
       bootIdRef,
-      dbRef,
+      clientRef,
       counterRef,
       uploadsRef,
       setOutputs,
@@ -184,24 +195,54 @@ function Playground() {
       setUploads,
       setNotice,
     })
-    if (ok && runAll) runAllCells(cells)
+    if (ok && runAll) await runAllCells(cells)
   }
 
-  const runAllCells = (cells = notebook.cells) => {
-    if (!dbRef.current) return
-    const { outputs: results, count } = runCells(dbRef.current, cells, counterRef.current, { stopOnError: true })
-    counterRef.current = count
-    setOutputs(results)
-    setTables(describeDb(dbRef.current))
+  const kernelLost = async (err) => {
+    const lost =
+      err?.code === NO_SESSION || isStopped(err) || err?.name === 'SqlTimeout' || /stopped unexpectedly/.test(err?.message ?? '')
+    if (!lost) {
+      setNotice(err.message)
+      return
+    }
+    const why = isStopped(err) ? 'Stopped.' : err?.code === NO_SESSION ? 'The database was reset.' : err.message
+    await restart()
+    setNotice(`${why} The notebook database was restarted, so tables you created in cells are gone. Run the cells again to rebuild them.`)
   }
+
+  const runOnKernel = async (cells, { stopOnError = false } = {}) => {
+    const client = clientRef.current
+    if (!client || running) return
+    const sqlCells = cells
+      .filter((c) => c.type === 'sql' && c.source.trim())
+      .map(({ id, type, source }) => ({ id, type, source }))
+    if (sqlCells.length === 0) return
+    setRunning(true)
+    try {
+      const { outputs: results, count } = await client.call('db.runCells', {
+        id: KERNEL,
+        cells: sqlCells,
+        startCount: counterRef.current,
+        stopOnError,
+      })
+      counterRef.current = count
+      setOutputs((prev) => (stopOnError ? results : { ...prev, ...results }))
+      setTables(await client.call('db.describe', { id: KERNEL }))
+    } catch (err) {
+      await kernelLost(err)
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  const runAllCells = (cells = notebook.cells) => runOnKernel(cells, { stopOnError: true })
 
   const runOneCell = (cell) => {
-    if (!dbRef.current || !ready) return
-    const { outputs: results, count } = runCells(dbRef.current, [cell], counterRef.current)
-    counterRef.current = count
-    setOutputs((prev) => ({ ...prev, ...results }))
-    setTables(describeDb(dbRef.current))
+    if (!ready) return
+    return runOnKernel([cell])
   }
+
+  const stopRunning = () => clientRef.current?.stop()
 
   const focusCell = (id) => {
     setTimeout(() => document.getElementById(`cell-input-${id}`)?.focus(), 0)
@@ -284,7 +325,7 @@ function Playground() {
   const uploadCsv = async (event) => {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (!file || !dbRef.current || !ready) return
+    if (!file || !clientRef.current || !ready || running) return
 
     try {
       if (uploads.length >= MAX_UPLOADS) {
@@ -300,7 +341,11 @@ function Playground() {
         throw new Error('Your uploaded files would take up too much space. Remove one first.')
       }
 
-      const summary = importCsv(dbRef.current, bytes, { fileName: file.name })
+      const summary = await clientRef.current.call(
+        'db.importCsv',
+        { id: KERNEL, bytes, fileName: file.name },
+        { timeout: IMPORT_TIMEOUT_MS }
+      )
       const record = { id: newId(), tableName: summary.tableName, fileName: file.name, bytes, addedAt: Date.now() }
 
       let kept = true
@@ -312,7 +357,7 @@ function Playground() {
 
       uploadsRef.current = [...uploadsRef.current, record]
       setUploads((prev) => [...prev, { id: record.id, fileName: file.name, tableName: summary.tableName }])
-      setTables(describeDb(dbRef.current))
+      setTables(await clientRef.current.call('db.describe', { id: KERNEL }))
       addCellAfter(notebook.cells[notebook.cells.length - 1].id, 'sql', `SELECT *\nFROM ${summary.tableName}\nLIMIT 10;`)
 
       const parts = [`Loaded ${summary.rowCount.toLocaleString()} rows into ${summary.tableName} (${summary.columns.length} columns).`]
@@ -324,7 +369,8 @@ function Playground() {
       if (!kept) parts.push("This browser couldn't save the file, so it will be gone after you reload.")
       setNotice(parts.join(' '))
     } catch (err) {
-      setNotice(err.message)
+      if (isStopped(err) || err?.name === 'SqlTimeout') await kernelLost(err)
+      else setNotice(err.message)
     }
   }
 
@@ -332,8 +378,16 @@ function Playground() {
     const label = upload.tableName ?? upload.fileName
     if (!window.confirm(`Remove "${label}"? Cells that use it will stop working.`)) return
 
-    if (upload.tableName && dbRef.current) {
-      dbRef.current.run(`DROP TABLE IF EXISTS "${upload.tableName.replace(/"/g, '""')}"`)
+    if (upload.tableName && clientRef.current) {
+      try {
+        await clientRef.current.call('db.run', {
+          id: KERNEL,
+          sql: `DROP TABLE IF EXISTS "${upload.tableName.replace(/"/g, '""')}"`,
+        })
+      } catch (err) {
+        setNotice(err.message)
+        return
+      }
     }
     try {
       await deleteUpload(upload.id)
@@ -341,7 +395,11 @@ function Playground() {
     }
     uploadsRef.current = uploadsRef.current.filter((u) => u.id !== upload.id)
     setUploads((prev) => prev.filter((u) => u.id !== upload.id))
-    if (dbRef.current) setTables(describeDb(dbRef.current))
+    try {
+      setTables(await clientRef.current.call('db.describe', { id: KERNEL }))
+    } catch (err) {
+      setNotice(err.message)
+    }
   }
 
   const importNotebook = async (event) => {
@@ -377,7 +435,7 @@ function Playground() {
         >
           <ArrowLeft className="h-4 w-4" /> All playgrounds
         </Link>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary-accent">SQL playground</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-accent-dark">SQL playground</p>
         <h1 className="mb-3 font-display text-4xl font-semibold leading-[1.1] text-heading md:text-5xl">
           Your SQL notebook.
         </h1>
@@ -423,9 +481,14 @@ function Playground() {
             aria-label="Upload a CSV file"
           />
 
-          <button type="button" onClick={() => runAllCells()} disabled={!ready} className={button}>
+          <button type="button" onClick={() => runAllCells()} disabled={!ready || running} className={button}>
             <Play className="h-3 w-3" /> Run all
           </button>
+          {running && (
+            <button type="button" onClick={stopRunning} className={`${button} border-wrong/30 text-wrong`}>
+              <X className="h-3.5 w-3.5" /> Stop
+            </button>
+          )}
           <button type="button" onClick={() => restart()} disabled={kernel.status === 'starting'} className={button}>
             <RotateCcw className="h-3.5 w-3.5" /> Restart
           </button>
@@ -610,7 +673,8 @@ function Playground() {
               index={index}
               total={notebook.cells.length}
               output={outputs[cell.id]}
-              kernelReady={ready}
+              kernelReady={ready && !running}
+              schema={tables}
               onChange={(source) => updateCell(cell.id, { source })}
               onChangeType={(type) => updateCell(cell.id, { type })}
               onRun={() => runOneCell(cell)}

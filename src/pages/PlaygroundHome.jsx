@@ -31,7 +31,7 @@ function PlaygroundHome() {
 
       <section className="mx-auto max-w-5xl px-8 pb-24">
         <div className="mb-8">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary-accent">Playgrounds</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-accent-dark">Playgrounds</p>
           <h2 className="font-display text-3xl font-semibold text-heading">Pick a place to experiment.</h2>
         </div>
 

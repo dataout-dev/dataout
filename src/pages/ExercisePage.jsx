@@ -45,7 +45,7 @@ function ExerciseView({ subject, exercise, day, msLeft }) {
 
       <div className="flex-1 max-w-[1600px] mx-auto px-4 sm:px-8 py-10 sm:py-12 grid lg:grid-cols-[380px_1fr] gap-10 w-full items-start">
         <div className="text-left">
-          <p className="text-xs font-semibold tracking-widest uppercase text-primary-accent mb-3">
+          <p className="text-xs font-semibold tracking-widest uppercase text-accent-dark mb-3">
             {subject.name} · Daily exercise
           </p>
           <h1 className="font-display font-semibold text-3xl text-heading leading-[1.15] mb-4">{exercise.title}</h1>

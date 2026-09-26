@@ -71,9 +71,9 @@ function Home() {
 
             <div className="flex items-center gap-3">
               <div className="flex avatar-stack">
-                <span className="h-8 w-8 rounded-full bg-[#e8735a] flex items-center justify-center text-white text-xs font-semibold">A</span>
-                <span className="h-8 w-8 rounded-full bg-[#4caf82] flex items-center justify-center text-white text-xs font-semibold">M</span>
-                <span className="h-8 w-8 rounded-full bg-[#5b9bd5] flex items-center justify-center text-white text-xs font-semibold">R</span>
+                <span className="h-8 w-8 rounded-full bg-[#c4482f] flex items-center justify-center text-white text-xs font-semibold">A</span>
+                <span className="h-8 w-8 rounded-full bg-[#2a7d55] flex items-center justify-center text-white text-xs font-semibold">M</span>
+                <span className="h-8 w-8 rounded-full bg-[#2f6fa3] flex items-center justify-center text-white text-xs font-semibold">R</span>
               </div>
               <span className="text-sm text-caption">Early access</span>
             </div>
@@ -163,7 +163,7 @@ function Home() {
       <section className="max-w-6xl mx-auto px-8 py-20">
         <div className="flex items-start justify-between gap-6 mb-10">
           <div>
-            <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-4">Coming soon</p>
+            <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-4">Coming soon</p>
             <h2 className="font-display font-semibold text-4xl md:text-5xl text-heading leading-tight max-w-2xl">
               The practical data education you wish existed.
             </h2>
@@ -177,7 +177,7 @@ function Home() {
         <div className="border-t border-heading/10 grid md:grid-cols-3 md:divide-x divide-heading/10">
           {pillars.map((p) => (
             <div key={p.n} className="pt-8 md:px-8 first:md:pl-0 last:md:pr-0">
-              <p className="text-sm text-primary-accent mb-4">{p.n}</p>
+              <p className="text-sm text-accent-dark mb-4">{p.n}</p>
               <p className="text-base font-semibold text-heading mb-2">{p.title}</p>
               <p className="text-sm text-body-text leading-relaxed">{p.desc}</p>
             </div>

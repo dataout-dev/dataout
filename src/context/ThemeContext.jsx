@@ -46,6 +46,20 @@ export const themes = [
     swatches: ['#0f0826', '#604ac7', '#c88da5'],
     special: true,
   },
+  {
+    id: 'iron-man',
+    name: 'Iron Man',
+    description: 'Armor red and arc-reactor gold, with reactor-ring art in the margins.',
+    swatches: ['#150b0d', '#e23636', '#f5b83d'],
+    special: true,
+  },
+  {
+    id: 'captain-america',
+    name: 'Captain America',
+    description: 'Shield navy, red and star white, with shield and stripe art in the margins.',
+    swatches: ['#0b1b3a', '#e63946', '#f4f7ff'],
+    special: true,
+  },
 ]
 
 const themeIds = new Set(themes.map((t) => t.id))

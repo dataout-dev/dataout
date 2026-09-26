@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { lessons } from '../data/lessons'
-import { ArrowLeft, Database, Pencil, UserIcon } from '../components/icons'
+import { computeBadges } from '../lib/badges'
+import { ArrowLeft, Award, Check, Database, Lock, Pencil, Sparkles, Trophy, UserIcon } from '../components/icons'
+
+const badgeIcons = { award: Award, check: Check, sparkles: Sparkles, trophy: Trophy }
 
 function getDisplayName(session) {
   const meta = session?.user?.user_metadata || {}
@@ -43,6 +46,8 @@ function Profile() {
   const total = sqlLessons.length
   const percent = total > 0 ? Math.round((completedCount / total) * 100) : 0
   const displayName = getDisplayName(session)
+  const badges = computeBadges(completedIds)
+  const earnedCount = badges.filter((b) => b.earned).length
 
   const handleSaveName = async () => {
     const trimmed = name.trim()
@@ -78,7 +83,7 @@ function Profile() {
 
           <div className="flex items-start justify-between gap-6">
             <div>
-              <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-3">Your profile</p>
+              <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-3">Your profile</p>
               <h1 className="font-display font-semibold text-4xl md:text-5xl text-heading leading-[1.1] mb-3">
                 Keep going, {displayName}.
               </h1>
@@ -93,11 +98,11 @@ function Profile() {
         </div>
       </section>
 
-      <section className="max-w-2xl mx-auto px-8 py-14 flex flex-col gap-6">
+      <section className="max-w-3xl mx-auto px-8 py-14 flex flex-col gap-6">
         <div className="bg-surface rounded-2xl border border-heading/10 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-2">Account</p>
+              <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-2">Account</p>
               <h2 className="text-xl font-semibold text-heading">Your details</h2>
             </div>
             <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cream text-heading">
@@ -148,7 +153,7 @@ function Profile() {
         </div>
 
         <div className="bg-surface rounded-2xl border border-heading/10 p-6">
-          <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-4">Learning snapshot</p>
+          <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-4">Learning snapshot</p>
 
           <div className="flex items-start justify-between mb-1">
             <p className="font-display font-semibold text-4xl text-heading">{percent}%</p>
@@ -165,6 +170,55 @@ function Profile() {
           <p className="mt-3 text-xs text-caption">
             {completedCount} of {total} lesson{total === 1 ? '' : 's'} completed
           </p>
+        </div>
+
+        <div className="bg-surface rounded-2xl border border-heading/10 p-6">
+          <div className="flex items-end justify-between mb-5">
+            <div>
+              <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-2">Badges</p>
+              <h2 className="text-xl font-semibold text-heading">Your achievements</h2>
+            </div>
+            <p className="text-sm text-caption">
+              {earnedCount} of {badges.length} earned
+            </p>
+          </div>
+
+          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {badges.map((badge) => {
+              const Icon = badgeIcons[badge.icon] || Award
+              const [have, need] = badge.progress
+              return (
+                <li
+                  key={badge.id}
+                  data-badge={badge.id}
+                  data-earned={badge.earned}
+                  className={`rounded-xl border p-4 flex flex-col gap-2 ${
+                    badge.earned ? 'border-heading/15 bg-cream' : 'border-heading/10 bg-cream/50'
+                  }`}
+                >
+                  <span
+                    className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                      badge.earned ? 'text-[#1c1c1a]' : 'bg-heading/5 text-caption'
+                    }`}
+                    style={badge.earned ? { backgroundColor: badge.color || '#f6dfb0' } : undefined}
+                  >
+                    {badge.earned ? <Icon className="h-5 w-5" /> : <Lock className="h-4 w-4" />}
+                  </span>
+                  <div>
+                    <p className={`text-sm font-semibold ${badge.earned ? 'text-heading' : 'text-body-text'}`}>{badge.title}</p>
+                    <p className="text-xs text-caption mt-0.5">{badge.description}</p>
+                  </div>
+                  {badge.earned ? (
+                    <p className="text-xs font-semibold text-correct mt-auto">Earned</p>
+                  ) : (
+                    <p className="text-xs text-caption mt-auto">
+                      {have} / {need}
+                    </p>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
         </div>
       </section>
     </div>

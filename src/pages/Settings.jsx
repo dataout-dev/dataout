@@ -25,7 +25,7 @@ function Settings() {
 
           <div className="flex items-start justify-between gap-6">
             <div>
-              <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-3">Preferences</p>
+              <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-3">Preferences</p>
               <h1 className="font-display font-semibold text-4xl md:text-5xl text-heading leading-[1.1] mb-3">
                 Make it yours.
               </h1>
@@ -44,7 +44,7 @@ function Settings() {
         <div className="bg-surface rounded-2xl border border-heading/10 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-2">Appearance</p>
+              <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-2">Appearance</p>
               <h2 className="text-xl font-semibold text-heading">Theme</h2>
             </div>
             <div className="flex items-center gap-1.5">

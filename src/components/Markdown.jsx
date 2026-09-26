@@ -28,7 +28,7 @@ const components = {
     return (
       <a
         href={href}
-        className="text-primary-accent underline underline-offset-2 hover:opacity-80"
+        className="text-accent-dark underline underline-offset-2 hover:opacity-80"
         {...(external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
         {...props}
       />

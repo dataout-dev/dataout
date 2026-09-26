@@ -10,7 +10,7 @@ const pad = (n) => String(n).padStart(2, '0')
 
 function StatusTag({ completed, unlocked }) {
   if (completed) return <span className="text-[10px] font-semibold tracking-widest text-correct uppercase">Completed</span>
-  if (unlocked) return <span className="text-[10px] font-semibold tracking-widest text-primary-accent uppercase">Available</span>
+  if (unlocked) return <span className="text-[10px] font-semibold tracking-widest text-accent-dark uppercase">Available</span>
   return <span className="text-[10px] font-semibold tracking-widest text-body-text bg-cream rounded-full px-2 py-0.5 uppercase">Locked</span>
 }
 
@@ -38,9 +38,9 @@ function SqlMainPage() {
             </span>
 
             <h1 className="font-display font-semibold text-5xl md:text-6xl leading-[1.05] mb-6">
-              <span className="text-heading/50">Learn SQL</span>
+              <span className="text-heading/60">Learn SQL</span>
               <br />
-              <span className="text-primary-accent/50">by querying.</span>
+              <span className="text-primary-accent">by querying.</span>
             </h1>
 
             <p className="text-body-text max-w-lg leading-relaxed mb-6">
@@ -60,7 +60,7 @@ function SqlMainPage() {
             <span className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl bg-heading/10 text-heading">
               <Terminal className="h-5 w-5" />
             </span>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-primary-accent">SQL playground</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-dark">SQL playground</p>
             <p className="mb-2 font-display text-xl font-semibold text-heading">Try it on real data.</p>
             <p className="mb-5 text-sm leading-relaxed text-body-text">
               Open a notebook, query real datasets, or upload your own CSV file.
@@ -74,7 +74,7 @@ function SqlMainPage() {
       </section>
 
       <section className="max-w-4xl mx-auto px-8 pb-24">
-        <p className="text-xs font-semibold text-primary-accent tracking-widest uppercase mb-3">Your curriculum</p>
+        <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-3">Your curriculum</p>
         <h2 className="font-display font-semibold text-3xl md:text-4xl text-heading mb-2">Four tiers, one step at a time.</h2>
         <p className="text-body-text mb-10">
           Finish a tier's lessons to unlock its exam. Pass the exam to open the next tier.

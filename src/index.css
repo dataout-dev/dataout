@@ -5,13 +5,13 @@
   --color-cream: #faf6ef;
   --color-heading: #1c1c1a;
   --color-body-text: #57534e;
-  --color-caption: #78716c;
+  --color-caption: #6c655f;
   --color-placeholder: #a8a29e;
   --color-primary-accent: #e8622c;
-  --color-accent-dark: #c2410c;
+  --color-accent-dark: #b23a08;
   --color-badge: #fdecdd;
-  --color-correct: #2f8f5b;
-  --color-wrong: #c9483a;
+  --color-correct: #1f7443;
+  --color-wrong: #b23a2d;
   --color-surface: #ffffff;
   --font-display: 'Fraunces', serif;
 }
@@ -20,13 +20,13 @@
   --color-cream: #eaf4fd;
   --color-heading: #152641;
   --color-body-text: #3c4f6b;
-  --color-caption: #6b7a92;
+  --color-caption: #56657e;
   --color-placeholder: #9aa8bd;
   --color-primary-accent: #136cfc;
   --color-accent-dark: #0d4fc4;
   --color-badge: #d7e8fb;
-  --color-correct: #4a7a12;
-  --color-wrong: #c94b3a;
+  --color-correct: #3a6a0a;
+  --color-wrong: #b03f2e;
 }
 
 :root[data-theme="midnight-forest"] {
@@ -61,32 +61,164 @@
     radial-gradient(ellipse 55% 70% at 72% 0%, rgba(96, 74, 199, 0.4), transparent 70%),
     linear-gradient(to right, color-mix(in srgb, var(--color-heading) 6%, transparent) 1px, transparent 1px),
     linear-gradient(to bottom, color-mix(in srgb, var(--color-heading) 6%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 44px 44px, 44px 44px;
+}
+
+:root[data-theme="iron-man"] {
+  --color-cream: #150b0d;
+  --color-heading: #fbf1e4;
+  --color-body-text: #e3cfc9;
+  --color-caption: #bf9f9b;
+  --color-placeholder: #7d5f5d;
+  --color-primary-accent: #f5b83d;
+  --color-accent-dark: #ffd36e;
+  --color-badge: #4a1a1f;
+  --color-correct: #4ade80;
+  --color-wrong: #ff8a80;
+  --color-surface: #24121a;
+}
+
+:root[data-theme="iron-man"] .bg-grid-fade {
+  background-image:
+    radial-gradient(ellipse 50% 70% at 85% 0%, rgba(226, 54, 54, 0.32), transparent 70%),
+    radial-gradient(ellipse 40% 60% at 15% 0%, rgba(245, 184, 61, 0.22), transparent 70%),
+    linear-gradient(to right, color-mix(in srgb, var(--color-heading) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-heading) 6%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+}
+
+:root[data-theme="iron-man"] {
+  background-color: var(--color-cream);
+}
+
+:root[data-theme="iron-man"] .min-h-screen.bg-cream,
+:root[data-theme="iron-man"] div[class="bg-cream"] {
+  background-color: transparent;
+}
+
+:root[data-theme="iron-man"] body::before,
+:root[data-theme="iron-man"] body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: min(24vw, 300px);
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+:root[data-theme="iron-man"] body::before {
+  left: 0;
+  background-image: url('./assets/themes/ironman-left.svg');
+  background-position: left center;
+  -webkit-mask-image: linear-gradient(to right, black 45%, transparent);
+  mask-image: linear-gradient(to right, black 45%, transparent);
+}
+
+:root[data-theme="iron-man"] body::after {
+  right: 0;
+  background-image: url('./assets/themes/ironman-right.svg');
+  background-position: right center;
+  -webkit-mask-image: linear-gradient(to left, black 45%, transparent);
+  mask-image: linear-gradient(to left, black 45%, transparent);
+}
+
+:root[data-theme="captain-america"] {
+  --color-cream: #0b1b3a;
+  --color-heading: #f4f7ff;
+  --color-body-text: #c7d3ee;
+  --color-caption: #a3b6dc;
+  --color-placeholder: #667fae;
+  --color-primary-accent: #ff5a5f;
+  --color-accent-dark: #8fc1ff;
+  --color-badge: #1b3a72;
+  --color-correct: #4ade80;
+  --color-wrong: #ffa0a4;
+  --color-surface: #132a52;
+}
+
+:root[data-theme="captain-america"] .bg-grid-fade {
+  background-image:
+    radial-gradient(ellipse 50% 70% at 85% 0%, rgba(230, 57, 70, 0.3), transparent 70%),
+    radial-gradient(ellipse 50% 70% at 15% 0%, rgba(47, 111, 224, 0.4), transparent 70%),
+    linear-gradient(to right, color-mix(in srgb, var(--color-heading) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-heading) 6%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
+}
+
+:root[data-theme="captain-america"] {
+  background-color: var(--color-cream);
+}
+
+:root[data-theme="captain-america"] .min-h-screen.bg-cream,
+:root[data-theme="captain-america"] div[class="bg-cream"] {
+  background-color: transparent;
+}
+
+:root[data-theme="captain-america"] body::before,
+:root[data-theme="captain-america"] body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: min(24vw, 300px);
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+:root[data-theme="captain-america"] body::before {
+  left: 0;
+  background-image: url('./assets/themes/captain-left.svg');
+  background-position: left center;
+  -webkit-mask-image: linear-gradient(to right, black 45%, transparent);
+  mask-image: linear-gradient(to right, black 45%, transparent);
+}
+
+:root[data-theme="captain-america"] body::after {
+  right: 0;
+  background-image: url('./assets/themes/captain-right.svg');
+  background-position: right center;
+  -webkit-mask-image: linear-gradient(to left, black 45%, transparent);
+  mask-image: linear-gradient(to left, black 45%, transparent);
+}
+
+@media (max-width: 900px) {
+  :root[data-theme="iron-man"] body::before,
+  :root[data-theme="iron-man"] body::after,
+  :root[data-theme="captain-america"] body::before,
+  :root[data-theme="captain-america"] body::after {
+    display: none;
+  }
 }
 
 :root[data-theme="rosewater"] {
   --color-cream: #fdf1f3;
   --color-heading: #3a1f24;
   --color-body-text: #6b4a50;
-  --color-caption: #93737a;
+  --color-caption: #7a5b64;
   --color-placeholder: #c3a3aa;
   --color-primary-accent: #d6336c;
   --color-accent-dark: #a61e4d;
   --color-badge: #fbdce6;
-  --color-correct: #2f9e59;
-  --color-wrong: #c92a2a;
+  --color-correct: #17703b;
+  --color-wrong: #b32424;
 }
 
 :root[data-theme="slate-mono"] {
   --color-cream: #f4f4f5;
   --color-heading: #18181b;
   --color-body-text: #52525b;
-  --color-caption: #71717a;
+  --color-caption: #5e5e66;
   --color-placeholder: #a1a1aa;
   --color-primary-accent: #334155;
   --color-accent-dark: #1e293b;
   --color-badge: #e2e8f0;
-  --color-correct: #16a34a;
-  --color-wrong: #dc2626;
+  --color-correct: #12722f;
+  --color-wrong: #c41f1f;
 }
 
 :root[data-theme="golden-hour"] {
