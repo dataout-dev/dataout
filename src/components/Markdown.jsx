@@ -6,7 +6,7 @@ const styled = (Tag, baseClass) =>
     return <Tag className={baseClass} {...props} />
   }
 
-const components = {
+export const markdownComponents = {
   h1: styled('h1', 'font-display font-semibold text-3xl text-heading leading-tight mt-10 mb-4 first:mt-0'),
   h2: styled('h2', 'font-display font-semibold text-2xl text-heading leading-tight mt-10 mb-3 first:mt-0'),
   h3: styled('h3', 'font-display font-semibold text-lg text-heading mt-7 mb-2'),
@@ -55,7 +55,7 @@ const components = {
 
 function Markdown({ children }) {
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
       {children}
     </ReactMarkdown>
   )
