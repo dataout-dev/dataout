@@ -19,6 +19,19 @@ function boot() {
 
 const ensure = () => (pyodideReady ??= boot())
 
+function callPython(py, name, args) {
+  const fn = py.globals.get(name)
+  const converted = args.map((arg) => (arg === null ? undefined : typeof arg === 'object' ? py.toPy(arg) : arg))
+  const proxy = fn(...converted)
+  try {
+    return proxy?.toJs ? proxy.toJs({ dict_converter: Object.fromEntries }) : proxy
+  } finally {
+    proxy?.destroy?.()
+    for (const arg of converted) arg?.destroy?.()
+    fn.destroy()
+  }
+}
+
 const handlers = {
   async 'py.init'() {
     const py = await ensure()
@@ -44,6 +57,23 @@ const handlers = {
   async 'py.reset'({ session }) {
     const py = await ensure()
     py.globals.get('_reset')(session)
+  },
+
+  async 'py.grade'({ mode, code, solution, cases, checkOutput }) {
+    const py = await ensure()
+    if (mode === 'variables') return callPython(py, '_grade_vars', [code, solution, cases])
+    return callPython(py, '_grade', [code, solution, cases, checkOutput ?? false])
+  },
+
+  async 'py.samples'({ mode, code, solution, exprs, checkOutput }) {
+    const py = await ensure()
+    if (mode === 'variables') return callPython(py, '_samples_vars', [code, solution, exprs])
+    return callPython(py, '_samples', [code, solution, exprs, checkOutput ?? false])
+  },
+
+  async 'py.challenge'({ given, code, reference, unordered }) {
+    const py = await ensure()
+    return callPython(py, '_challenge', [given ?? '', code, reference ?? null, unordered ?? false])
   },
 
   async 'py.run'({ session, source, filename }) {

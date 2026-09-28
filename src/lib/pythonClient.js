@@ -9,3 +9,6 @@ export const createPythonClient = (options) =>
     subject: 'code',
     ...options,
   })
+
+let shared
+export const sharedPython = () => (shared ??= createPythonClient())

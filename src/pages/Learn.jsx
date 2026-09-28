@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { lessons } from '../data/lessons'
+import { pyLessons } from '../data/python/index.js'
 import { trackColors } from '../data/trackColors'
 import { Sparkles, Database, CodeIcon, GitBranch, Check, ArrowRight } from '../components/icons'
 
@@ -22,9 +23,10 @@ function Learn() {
     {
       id: 'python',
       name: 'Python',
-      available: false,
+      available: true,
       color: trackColors.python,
-      desc: 'Use Python to clean, explore, and automate your data work.',
+      desc: 'Learn Python from the first line to real data work, with lessons you can run.',
+      lessonCount: pyLessons.length,
     },
     {
       id: 'de',

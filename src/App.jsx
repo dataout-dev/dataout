@@ -22,6 +22,9 @@ import PostLoginRedirect from './components/PostLoginRedirect'
 
 const Playground = lazy(() => import('./pages/Playground'))
 const PythonPlayground = lazy(() => import('./pages/PythonPlayground'))
+const PythonPath = lazy(() => import('./pages/python/PythonPath'))
+const PythonLesson = lazy(() => import('./pages/python/PythonLesson'))
+const PythonExam = lazy(() => import('./pages/python/PythonExam'))
 
 function App() {
   return (
@@ -59,6 +62,36 @@ function App() {
               <ProtectedRoute>
                 <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the playground...</p>}>
                   <PythonPlayground />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/python"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the Python path...</p>}>
+                  <PythonPath />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/python/exam/:tier"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the exam...</p>}>
+                  <PythonExam />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/python/:lessonId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the lesson...</p>}>
+                  <PythonLesson />
                 </Suspense>
               </ProtectedRoute>
             }
