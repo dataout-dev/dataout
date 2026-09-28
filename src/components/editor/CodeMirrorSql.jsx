@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { Compartment, EditorState, Prec } from '@codemirror/state'
 import { EditorView, drawSelection, highlightActiveLine, keymap, lineNumbers, placeholder as placeholderExt } from '@codemirror/view'
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
-import { HighlightStyle, syntaxHighlighting, bracketMatching } from '@codemirror/language'
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
+import { HighlightStyle, indentUnit, syntaxHighlighting, bracketMatching } from '@codemirror/language'
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete'
 import { SQLite, sql } from '@codemirror/lang-sql'
+import { python } from '@codemirror/lang-python'
 import { tags as t } from '@lezer/highlight'
 
 const palettes = {
@@ -84,7 +85,7 @@ function buildTheme(palette, { fontSize, minHeight, padding }) {
     { tag: [t.string, t.special(t.string)], color: p.string },
     { tag: [t.number, t.bool, t.null, t.atom], color: p.number },
     { tag: [t.lineComment, t.blockComment, t.comment], color: p.comment, fontStyle: 'italic' },
-    { tag: [t.function(t.variableName), t.standard(t.name), t.typeName, t.className], color: p.fn },
+    { tag: [t.function(t.variableName), t.standard(t.name), t.standard(t.variableName), t.typeName, t.className, t.definition(t.variableName)], color: p.fn },
     { tag: [t.operator, t.punctuation, t.separator, t.paren, t.squareBracket], color: p.operator },
   ])
 
@@ -100,7 +101,8 @@ export function schemaToCompletion(tables = []) {
   return schema
 }
 
-const sqlExtension = (schema) => sql({ dialect: SQLite, schema, upperCaseKeywords: true })
+const languageExtension = (language, schema) =>
+  language === 'python' ? python() : sql({ dialect: SQLite, schema: schemaToCompletion(schema), upperCaseKeywords: true })
 
 function CodeMirrorSql({
   value,
@@ -118,6 +120,7 @@ function CodeMirrorSql({
   fontSize = '16px',
   padding = '20px 20px 20px 0',
   minHeight,
+  language = 'sql',
 }) {
   const host = useRef(null)
   const view = useRef(null)
@@ -160,8 +163,9 @@ function CodeMirrorSql({
         closeBrackets(),
         bracketMatching(),
         autocompletion({ activateOnTyping: true, icons: false }),
-        keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, ...completionKeymap]),
-        schemaCompartment.current.of(sqlExtension(schemaToCompletion(schema))),
+        keymap.of([...closeBracketsKeymap, ...(language === 'python' ? [indentWithTab] : []), ...defaultKeymap, ...historyKeymap, ...completionKeymap]),
+        ...(language === 'python' ? [indentUnit.of('    ')] : []),
+        schemaCompartment.current.of(languageExtension(language, schema)),
         buildTheme(variant, { fontSize, padding, minHeight: minHeight ?? `${minLines * 28 + 40}px` }),
         ...(showLineNumbers ? [lineNumbers(), highlightActiveLine()] : []),
         ...(placeholder ? [placeholderExt(placeholder)] : []),
@@ -190,8 +194,8 @@ function CodeMirrorSql({
   }, [value])
 
   useEffect(() => {
-    view.current?.dispatch({ effects: schemaCompartment.current.reconfigure(sqlExtension(schemaToCompletion(schema))) })
-  }, [schema])
+    view.current?.dispatch({ effects: schemaCompartment.current.reconfigure(languageExtension(language, schema)) })
+  }, [schema, language])
 
   return <div ref={host} className="min-w-0 flex-1" data-sql-editor />
 }

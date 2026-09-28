@@ -6,7 +6,10 @@ import { availablePlaygrounds } from '../data/playgrounds'
 import { availableExerciseSubjects } from '../data/exerciseSubjects'
 import { ChevronDown, Menu, X } from './icons'
 
-const learnItems = [{ label: 'SQL', to: '/learn/sql' }]
+const learnItems = [
+  { label: 'SQL', to: '/learn/sql' },
+  { label: 'Python', to: '/learn/python' },
+]
 const playgroundItems = availablePlaygrounds.map((p) => ({ label: p.name, to: p.path }))
 const exerciseItems = availableExerciseSubjects.map((s) => ({ label: s.name, to: s.path }))
 
