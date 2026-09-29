@@ -83,7 +83,12 @@ function PracticeTab({ lesson, tier, section, onPassed, onOpenReal }) {
     try {
       const session = `practice:${lesson.id}`
       await resetSession(session)
-      const ran = await runSnippet(session, code, '<your code>')
+      // Variables-mode lessons rely on pre-given values (e.g. `a`, `b`) that only exist via a
+      // case's `setup` string during grading — without it, a plain Run would always NameError
+      // before the student's own code ever runs. Preview with the first sample's setup instead.
+      const setup = practice.mode === 'variables' ? (practice.samples?.[0]?.setup ?? practice.cases?.[0]?.setup ?? '') : ''
+      const source = setup ? `${setup}\n${code}` : code
+      const ran = await runSnippet(session, source, '<your code>')
       setOutput(ran)
       if (!ran.error && practice.samples?.length) setSamples(await runSamples(practice, code))
     } catch (err) {
