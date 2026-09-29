@@ -42,7 +42,7 @@ export const foundationsExam = [
     task: 'Store in `answer` a **list of the different islands**, sorted alphabetically, with no repeats.',
     reference: 'answer = sorted({p["island"] for p in penguins})',
     walkthrough: 'A set removes repeats, and `sorted` turns it into an alphabetical list.',
-    traps: ['answer = [p["island"] for p in penguins]', 'answer = list({p["island"] for p in penguins})[::-1]'],
+    traps: ['answer = [p["island"] for p in penguins]', 'answer = sorted({p["island"] for p in penguins}, reverse=True)'],
   }),
   code({
     id: 'f-exam-6',

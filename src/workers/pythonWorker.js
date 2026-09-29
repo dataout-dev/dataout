@@ -19,10 +19,14 @@ function boot() {
 
 const ensure = () => (pyodideReady ??= boot())
 
-function callPython(py, name, args) {
+// Uses callPromising (not a plain call) so Python code that runs its own event loop
+// (asyncio.run(...) inside a practice/challenge submission) can actually suspend and
+// resume across the WASM stack, instead of failing with "Cannot stack switch because
+// the Python entrypoint was a synchronous function."
+async function callPython(py, name, args) {
   const fn = py.globals.get(name)
   const converted = args.map((arg) => (arg === null ? undefined : typeof arg === 'object' ? py.toPy(arg) : arg))
-  const proxy = fn(...converted)
+  const proxy = await fn.callPromising(...converted)
   try {
     return proxy?.toJs ? proxy.toJs({ dict_converter: Object.fromEntries }) : proxy
   } finally {
@@ -61,25 +65,25 @@ const handlers = {
 
   async 'py.grade'({ mode, code, solution, cases, checkOutput }) {
     const py = await ensure()
-    if (mode === 'variables') return callPython(py, '_grade_vars', [code, solution, cases])
-    return callPython(py, '_grade', [code, solution, cases, checkOutput ?? false])
+    if (mode === 'variables') return await callPython(py, '_grade_vars', [code, solution, cases])
+    return await callPython(py, '_grade', [code, solution, cases, checkOutput ?? false])
   },
 
   async 'py.samples'({ mode, code, solution, exprs, checkOutput }) {
     const py = await ensure()
-    if (mode === 'variables') return callPython(py, '_samples_vars', [code, solution, exprs])
-    return callPython(py, '_samples', [code, solution, exprs, checkOutput ?? false])
+    if (mode === 'variables') return await callPython(py, '_samples_vars', [code, solution, exprs])
+    return await callPython(py, '_samples', [code, solution, exprs, checkOutput ?? false])
   },
 
   async 'py.challenge'({ given, code, reference, unordered }) {
     const py = await ensure()
-    return callPython(py, '_challenge', [given ?? '', code, reference ?? null, unordered ?? false])
+    return await callPython(py, '_challenge', [given ?? '', code, reference ?? null, unordered ?? false])
   },
 
   async 'py.run'({ session, source, filename }) {
     const py = await ensure()
     const run = py.globals.get('_run')
-    const proxy = run(session, source, filename)
+    const proxy = await run.callPromising(session, source, filename)
     try {
       return proxy.toJs({ dict_converter: Object.fromEntries })
     } finally {

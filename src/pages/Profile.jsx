@@ -3,10 +3,18 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { lessons } from '../data/lessons'
-import { computeBadges } from '../lib/badges'
-import { ArrowLeft, Award, Check, Database, Lock, Pencil, Sparkles, Trophy, UserIcon } from '../components/icons'
+import { pyLessons } from '../data/python/index.js'
+import { gitLessons } from '../data/git/index.js'
+import { computeBadges, computeGitBadges, computePythonBadges } from '../lib/badges'
+import { ArrowLeft, Award, Check, CodeIcon, Database, GitBranch, Lock, Pencil, Sparkles, Trophy, UserIcon } from '../components/icons'
 
 const badgeIcons = { award: Award, check: Check, sparkles: Sparkles, trophy: Trophy }
+
+const SNAPSHOTS = [
+  { subject: 'sql', label: 'SQL', icon: Database, color: '#cfe3f5', iconColor: '#2f6f9e', lessons },
+  { subject: 'python', label: 'Python', icon: CodeIcon, color: '#dcead9', iconColor: '#3f7a4d', lessons: pyLessons },
+  { subject: 'git', label: 'Git', icon: GitBranch, color: '#f6dccb', iconColor: '#a05a2c', lessons: gitLessons },
+]
 
 function getDisplayName(session) {
   const meta = session?.user?.user_metadata || {}
@@ -41,13 +49,22 @@ function Profile() {
   if (!session) return null
 
   const completedIds = new Set(progress.map((row) => row.lesson_id))
-  const sqlLessons = lessons.filter((l) => l.subject === 'sql')
-  const completedCount = sqlLessons.filter((l) => completedIds.has(l.id)).length
-  const total = sqlLessons.length
-  const percent = total > 0 ? Math.round((completedCount / total) * 100) : 0
   const displayName = getDisplayName(session)
-  const badges = computeBadges(completedIds)
-  const earnedCount = badges.filter((b) => b.earned).length
+
+  const snapshots = SNAPSHOTS.map((s) => {
+    const total = s.lessons.length
+    const completedCount = s.lessons.filter((l) => completedIds.has(l.id)).length
+    const percent = total > 0 ? Math.round((completedCount / total) * 100) : 0
+    return { ...s, total, completedCount, percent }
+  })
+
+  const badgeGroups = [
+    { subject: 'sql', label: 'SQL', badges: computeBadges(completedIds) },
+    { subject: 'python', label: 'Python', badges: computePythonBadges(completedIds) },
+    { subject: 'git', label: 'Git', badges: computeGitBadges(completedIds) },
+  ]
+  const earnedCount = badgeGroups.reduce((sum, g) => sum + g.badges.filter((b) => b.earned).length, 0)
+  const totalBadges = badgeGroups.reduce((sum, g) => sum + g.badges.length, 0)
 
   const handleSaveName = async () => {
     const trimmed = name.trim()
@@ -98,7 +115,7 @@ function Profile() {
         </div>
       </section>
 
-      <section className="max-w-3xl mx-auto px-8 py-14 flex flex-col gap-6">
+      <section className="max-w-4xl mx-auto px-8 py-14 flex flex-col gap-6">
         <div className="bg-surface rounded-2xl border border-heading/10 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -155,21 +172,30 @@ function Profile() {
         <div className="bg-surface rounded-2xl border border-heading/10 p-6">
           <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-4">Learning snapshot</p>
 
-          <div className="flex items-start justify-between mb-1">
-            <p className="font-display font-semibold text-4xl text-heading">{percent}%</p>
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#cfe3f5] text-[#2f6f9e]">
-              <Database className="h-4 w-4" />
-            </span>
-          </div>
-          <p className="text-sm text-caption mb-4">SQL path complete</p>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {snapshots.map((s) => (
+              <div key={s.subject} className="rounded-xl bg-cream p-4">
+                <div className="flex items-start justify-between mb-1">
+                  <p className="font-display font-semibold text-3xl text-heading">{s.percent}%</p>
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-xl"
+                    style={{ backgroundColor: s.color, color: s.iconColor }}
+                  >
+                    <s.icon className="h-4 w-4" />
+                  </span>
+                </div>
+                <p className="text-sm text-caption mb-3">{s.label} path complete</p>
 
-          <div className="h-2 w-full rounded-full bg-cream overflow-hidden">
-            <div className="h-full bg-heading rounded-full transition-[width]" style={{ width: `${percent}%` }} />
-          </div>
+                <div className="h-2 w-full rounded-full bg-surface overflow-hidden">
+                  <div className="h-full bg-heading rounded-full transition-[width]" style={{ width: `${s.percent}%` }} />
+                </div>
 
-          <p className="mt-3 text-xs text-caption">
-            {completedCount} of {total} lesson{total === 1 ? '' : 's'} completed
-          </p>
+                <p className="mt-3 text-xs text-caption">
+                  {s.completedCount} of {s.total} lesson{s.total === 1 ? '' : 's'} completed
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="bg-surface rounded-2xl border border-heading/10 p-6">
@@ -179,46 +205,58 @@ function Profile() {
               <h2 className="text-xl font-semibold text-heading">Your achievements</h2>
             </div>
             <p className="text-sm text-caption">
-              {earnedCount} of {badges.length} earned
+              {earnedCount} of {totalBadges} earned
             </p>
           </div>
 
-          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {badges.map((badge) => {
-              const Icon = badgeIcons[badge.icon] || Award
-              const [have, need] = badge.progress
-              return (
-                <li
-                  key={badge.id}
-                  data-badge={badge.id}
-                  data-earned={badge.earned}
-                  className={`rounded-xl border p-4 flex flex-col gap-2 ${
-                    badge.earned ? 'border-heading/15 bg-cream' : 'border-heading/10 bg-cream/50'
-                  }`}
-                >
-                  <span
-                    className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                      badge.earned ? 'text-[#1c1c1a]' : 'bg-heading/5 text-caption'
-                    }`}
-                    style={badge.earned ? { backgroundColor: badge.color || '#f6dfb0' } : undefined}
-                  >
-                    {badge.earned ? <Icon className="h-5 w-5" /> : <Lock className="h-4 w-4" />}
-                  </span>
-                  <div>
-                    <p className={`text-sm font-semibold ${badge.earned ? 'text-heading' : 'text-body-text'}`}>{badge.title}</p>
-                    <p className="text-xs text-caption mt-0.5">{badge.description}</p>
-                  </div>
-                  {badge.earned ? (
-                    <p className="text-xs font-semibold text-correct mt-auto">Earned</p>
-                  ) : (
-                    <p className="text-xs text-caption mt-auto">
-                      {have} / {need}
-                    </p>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
+          <div className="flex flex-col gap-6">
+            {badgeGroups.map((group) => (
+              <div key={group.subject}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-semibold text-heading">{group.label}</p>
+                  <p className="text-xs text-caption">
+                    {group.badges.filter((b) => b.earned).length} of {group.badges.length} earned
+                  </p>
+                </div>
+                <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {group.badges.map((badge) => {
+                    const Icon = badgeIcons[badge.icon] || Award
+                    const [have, need] = badge.progress
+                    return (
+                      <li
+                        key={badge.id}
+                        data-badge={badge.id}
+                        data-earned={badge.earned}
+                        className={`rounded-xl border p-4 flex flex-col gap-2 ${
+                          badge.earned ? 'border-heading/15 bg-cream' : 'border-heading/10 bg-cream/50'
+                        }`}
+                      >
+                        <span
+                          className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                            badge.earned ? 'text-[#1c1c1a]' : 'bg-heading/5 text-caption'
+                          }`}
+                          style={badge.earned ? { backgroundColor: badge.color || '#f6dfb0' } : undefined}
+                        >
+                          {badge.earned ? <Icon className="h-5 w-5" /> : <Lock className="h-4 w-4" />}
+                        </span>
+                        <div>
+                          <p className={`text-sm font-semibold ${badge.earned ? 'text-heading' : 'text-body-text'}`}>{badge.title}</p>
+                          <p className="text-xs text-caption mt-0.5">{badge.description}</p>
+                        </div>
+                        {badge.earned ? (
+                          <p className="text-xs font-semibold text-correct mt-auto">Earned</p>
+                        ) : (
+                          <p className="text-xs text-caption mt-auto">
+                            {have} / {need}
+                          </p>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </div>

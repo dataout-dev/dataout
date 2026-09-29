@@ -2,8 +2,9 @@
 
 Learn SQL by doing, on real data. DataOut is a browser-based learning site: short lessons, a query editor
 that runs entirely in your browser, tier exams, a daily exercise and a notebook-style playground. A Python path with
-Foundations, Core Python, Object-Oriented Python and Python for Data is included, and Professional Python and
-Algorithms are planned.
+Foundations, Core Python, Object-Oriented Python, Python for Data and Professional Python is included, Algorithms and
+Problem Solving is planned, and a Git path teaches real git commands against real, seeded repositories, also entirely
+in the browser.
 
 There is no query server. SQL runs in the browser with [sql.js](https://github.com/sql-js/sql.js) (SQLite compiled
 to WebAssembly) inside a Web Worker, so a runaway query can be stopped (or times out after 15 seconds) without freezing the page, and the datasets are static files served with the app. The only backend is
@@ -14,7 +15,8 @@ to WebAssembly) inside a Web Worker, so a runaway query can be stopped (or times
 | Area | What it does |
 | ---- | ------------ |
 | **Learn** (`/learn/sql`) | 41 SQL lessons in four tiers: Beginner (10), Intermediate (12), Advanced (10) and Expert (9). Each lesson has a written **Learn** tab, a **Practice** test on small made-up tables with hidden cases, and three **On real data** challenges. Lessons unlock one after another. |
-| **Learn Python** (`/learn/python`) | 227 lessons across four live tiers: Foundations (50 lessons) and Core Python (58 lessons, including a 17-lesson regular expressions course) are open from the start; Object-Oriented Python (41 lessons) and Python for Data (78 lessons: NumPy, pandas, visualisation, statistics, machine learning and data sources) unlock progressively, one tier's exam at a time. Python runs in your browser with Pyodide, including NumPy, pandas, matplotlib, SciPy, statsmodels, scikit-learn, SymPy, DuckDB, Polars, BeautifulSoup, SQLAlchemy and NetworkX. Each lesson has a written **Learn** tab with runnable examples, a **Practice** test with hidden cases (or a five-question check for reading lessons), and three **On real data** challenges on the NYC Flights 2013, Palmer Penguins, Spotify 2024 and Chinook datasets. Every tier ends with an exam of 10 questions. Professional Python and Algorithms and Problem Solving are planned. |
+| **Learn Python** (`/learn/python`) | 269 lessons across five live tiers: Foundations (50 lessons) and Core Python (58 lessons, including a 17-lesson regular expressions course) are open from the start; Object-Oriented Python (41 lessons), Python for Data (78 lessons: NumPy, pandas, visualisation, statistics, machine learning and data sources) and Professional Python (42 lessons: testing, typing, internals, performance, concurrency, packaging and building applications) unlock progressively, one tier's exam at a time. Python runs in your browser with Pyodide, including NumPy, pandas, matplotlib, SciPy, statsmodels, scikit-learn, SymPy, DuckDB, Polars, BeautifulSoup, SQLAlchemy, NetworkX, pytest and pydantic. Each lesson has a written **Learn** tab with runnable examples, a **Practice** test with hidden cases (or a five-question check for reading and learn-heavy lessons), and three **On real data** challenges on the NYC Flights 2013, Palmer Penguins, Spotify 2024 and Chinook datasets. Every tier ends with an exam of 10 questions. Algorithms and Problem Solving is planned. |
+| **Learn Git** (`/learn/git`) | 14 lessons in the first of four planned tiers, Git Foundations, open from the start: the core loop (init, add, commit, log), status and diff, staging, .gitignore, and undoing mistakes (restore, reset, revert), ending in a cleanup workshop. Git runs in your browser with [isomorphic-git](https://isomorphic-git.org) against a real, seeded repository per lesson — a terminal for typing real git commands, and a small file editor for the handful of lessons that need it. Each hands-on lesson has a written **Learn** tab and a **Practice** exercise graded on the resulting repository state (commit history, file contents, branch, tags), not on the literal commands typed. The tier ends with a 10-question exam. Branching & Merging, Remotes & Collaboration, and Advanced Git & Real Workflows are planned. |
 | **Tier exams** (`/learn/sql/exam/:tier`) | A separate page per tier with 10 questions on real data and no hints. Pass at 70 points out of 100 to unlock the next tier. |
 | **Daily exercise** (`/exercise/sql`) | One real-world question a day on real data, picked from the date (UTC), with a walkthrough that unlocks after solving or after three attempts. |
 | **Playground** (`/playground/sql`) | A notebook for SQL: SQL and Markdown cells sharing one in-memory database, built-in datasets, CSV upload, and export/import of notebooks. |
@@ -29,6 +31,7 @@ to WebAssembly) inside a Web Worker, so a runaway query can be stopped (or times
 - [Tailwind CSS 4](https://tailwindcss.com) (tokens defined in `src/index.css`)
 - [sql.js](https://github.com/sql-js/sql.js) for SQLite in the browser, run in a Web Worker (`src/workers/sqlWorker.js`, client in `src/lib/sqlWorkerClient.js`)
 - [Pyodide](https://pyodide.org) (Python compiled to WebAssembly) in a Web Worker for the Python playground (`src/workers/pythonWorker.js`), loaded from a CDN on first use
+- [isomorphic-git](https://isomorphic-git.org) and [LightningFS](https://github.com/isomorphic-git/lightning-fs) in a Web Worker for the Git path (`src/workers/gitWorker.js`) — a real git implementation against a real, in-browser virtual filesystem
 - [CodeMirror 6](https://codemirror.net) for the SQL editor (syntax highlighting and table/column autocomplete), loaded on demand
 - [Supabase](https://supabase.com) (`@supabase/supabase-js`) for auth and progress
 - [react-markdown](https://github.com/remarkjs/react-markdown) with `remark-gfm` for lesson documents

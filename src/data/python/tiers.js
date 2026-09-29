@@ -52,9 +52,11 @@ export const pyTiers = [
     number: 5,
     name: 'Professional Python',
     tagline: 'Testing, typing, internals, performance, concurrency and packaging.',
-    audience: 'Coming after the Data tier.',
+    audience: 'Finish Python for Data and pass its exam to unlock this tier.',
     color: '#f6e3b4',
-    soon: true,
+    dataset: 'chinook',
+    datasetNote: 'Chinook and small service-style examples — fakes, flaky lookups and toy CLIs.',
+    examPassPercent: 70,
   },
   {
     id: 'algo',
