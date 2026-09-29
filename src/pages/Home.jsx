@@ -48,8 +48,8 @@ function Home() {
             </h1>
 
             <p className="text-body-text mb-9 max-w-md leading-relaxed">
-              A mapped, hands-on path through SQL, Python, and data engineering —
-              with SQL and Python available now and data engineering coming soon. Built by someone
+              A mapped, hands-on path through SQL, Python, and Git —
+              all available now, with data engineering coming soon. Built by someone
               shipping data pipelines in production, not just teaching from tutorials.
             </p>
 
@@ -117,16 +117,16 @@ function Home() {
                   <p className="text-[11px] text-[#a8360a] font-medium">Available now</p>
                 </Link>
 
-                <div className="bg-[#dcead9] rounded-xl p-3.5 flex flex-col">
+                <Link to="/learn/git" className="bg-[#f6dccb] rounded-xl p-3.5 flex flex-col hover:brightness-[0.98] transition">
                   <div className="flex items-start justify-between mb-6">
                     <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/70 text-[#1c1c1a]">
                       <GitBranch className="h-4 w-4" />
                     </span>
-                    <span className="text-[9px] font-medium tracking-wide text-[#57534e] bg-white/70 rounded-full px-2 py-0.5">SOON</span>
+                    <ExternalLink className="h-3.5 w-3.5 text-[#1c1c1a]/70" />
                   </div>
-                  <p className="text-sm font-semibold text-[#1c1c1a] mb-0.5">Data engineering</p>
-                  <p className="text-[11px] text-[#57534e]">Coming soon</p>
-                </div>
+                  <p className="text-sm font-semibold text-[#1c1c1a] mb-0.5">Git</p>
+                  <p className="text-[11px] text-[#a8360a] font-medium">Available now</p>
+                </Link>
               </div>
 
               <div className="mt-4 flex items-center justify-between bg-cream rounded-xl px-4 py-3.5 text-sm text-body-text">
