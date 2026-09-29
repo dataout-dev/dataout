@@ -3,10 +3,12 @@ import { foundationsSections } from './foundations/index.js'
 import { coreSections } from './core/index.js'
 import { oopSections } from './oop/index.js'
 import { dataSections } from './data/index.js'
+import { proSections } from './pro/index.js'
+import { algoSections } from './algo/index.js'
 
 export { pyTiers, pyTierById }
 
-const sectionsByTier = { foundations: foundationsSections, core: coreSections, oop: oopSections, data: dataSections }
+const sectionsByTier = { foundations: foundationsSections, core: coreSections, oop: oopSections, data: dataSections, pro: proSections, algo: algoSections }
 
 let counter = 0
 export const pySections = pyTiers.flatMap((tier) =>

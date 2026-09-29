@@ -1,13 +1,15 @@
 import { Link } from 'react-router-dom'
 import { lessons } from '../data/lessons'
 import { pyLessons } from '../data/python/index.js'
+import { gitLessons } from '../data/git/index.js'
 import { trackColors } from '../data/trackColors'
-import { Sparkles, Database, CodeIcon, GitBranch, Check, ArrowRight } from '../components/icons'
+import { Sparkles, Database, CodeIcon, GitBranch, Table, Check, ArrowRight } from '../components/icons'
 
 const trackIcons = {
   sql: Database,
   python: CodeIcon,
-  de: GitBranch,
+  git: GitBranch,
+  de: Table,
 }
 
 function Learn() {
@@ -27,6 +29,14 @@ function Learn() {
       color: trackColors.python,
       desc: 'Learn Python from the first line to real data work, with lessons you can run.',
       lessonCount: pyLessons.length,
+    },
+    {
+      id: 'git',
+      name: 'Git',
+      available: true,
+      color: trackColors.git,
+      desc: 'Real git commands, run against real repositories, right in your browser.',
+      lessonCount: gitLessons.length,
     },
     {
       id: 'de',

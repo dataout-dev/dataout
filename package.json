@@ -10,6 +10,7 @@
     "check:exercises": "node scripts/check-exercises.mjs",
     "check:curriculum": "node scripts/check-curriculum.mjs",
     "check:python": "node scripts/check-python.mjs",
+    "check:git": "node scripts/check-git.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,9 +21,13 @@
     "@codemirror/language": "^6.12.4",
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.13",
+    "@isomorphic-git/lightning-fs": "^4.10.3",
     "@lezer/highlight": "^1.2.4",
     "@supabase/supabase-js": "^2.116.0",
     "@tailwindcss/vite": "^4.3.3",
+    "buffer": "^6.0.3",
+    "diff": "^9.0.0",
+    "isomorphic-git": "^1.42.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",
