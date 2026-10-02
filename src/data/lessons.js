@@ -8,4 +8,7 @@ export {
   pathIndex,
   pathUrl,
   examId,
+  tierProjects,
+  projectById,
+  allProjects,
 } from './curriculum/index.js'

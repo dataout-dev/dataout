@@ -113,13 +113,14 @@ function ExamView({ tier, questions, alreadyPassed, onPass }) {
           <div className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-correct/25 bg-correct/10 px-5 py-4">
             <p className="flex items-center gap-2 text-sm font-semibold text-correct">
               <CircleCheck className="h-5 w-5 shrink-0" /> You passed the {tier.name} exam.
-              {next && ' The next tier is open.'}
+              {next && (next.kind === 'project' ? ' The project is now open.' : ' The next tier is open.')}
             </p>
             <Link
               to={next ? pathUrl(next) : '/learn/sql'}
               className="flex items-center gap-2 rounded-lg bg-heading px-4 py-2 text-sm font-semibold text-cream transition-colors hover:bg-heading/90"
             >
-              {next ? 'Start the next tier' : 'Back to the path'} <ArrowRight className="h-4 w-4" />
+              {next ? (next.kind === 'project' ? 'Start the project' : 'Start the next tier') : 'Back to the path'}{' '}
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         )}

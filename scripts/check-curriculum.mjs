@@ -4,8 +4,8 @@ import initSqlJs from 'sql.js'
 import { lessons, tiers } from '../src/data/curriculum/index.js'
 import { exams } from '../src/data/curriculum/exams.js'
 import { evaluateLesson, expectedFor, openCase } from '../src/lib/lessonGrading.js'
-import { gradeResult, runExerciseQuery } from '../src/lib/exerciseGrading.js'
 import { resultsMatch } from '../src/lib/sqlHelpers.js'
+import { createRealChecker } from './lib/checkReal.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
 const SQL = await initSqlJs()
@@ -17,55 +17,8 @@ const fail = (where, msg) => {
   console.log(`  FAIL ${where}: ${msg}`)
 }
 
-const bytesCache = new Map()
-function datasetBytes(id) {
-  if (!bytesCache.has(id)) {
-    const meta = manifest.datasets.find((d) => d.id === id)
-    if (!meta) return null
-    bytesCache.set(id, new Uint8Array(fs.readFileSync(path.join(root, 'public/datasets', meta.file))))
-  }
-  return bytesCache.get(id)
-}
-
-function reverseTables(db) {
-  const tables = db.exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")[0]?.values ?? []
-  for (const [name] of tables) {
-    db.run(`CREATE TABLE "${name}__rev" AS SELECT * FROM "${name}" ORDER BY rowid DESC; DROP TABLE "${name}"; ALTER TABLE "${name}__rev" RENAME TO "${name}";`)
-  }
-}
-
-function runOnDataset(id, query, { reversed = false } = {}) {
-  const bytes = datasetBytes(id)
-  if (!reversed) return runExerciseQuery(SQL, bytes, query)
-  const db = new SQL.Database(bytes)
-  try {
-    reverseTables(db)
-    const results = db.exec(query)
-    const last = results[results.length - 1]
-    return last ? { columns: last.columns, rows: last.values } : { columns: [], rows: [] }
-  } finally {
-    db.close()
-  }
-}
-
-function checkReal(where, real) {
-  if (!real.dataset || !datasetBytes(real.dataset)) return fail(where, `unknown dataset ${real.dataset}`)
-  for (const key of ['title', 'brief', 'reference']) if (!real[key]) fail(where, `missing ${key}`)
-  if (!real.exam && !real.walkthrough) fail(where, 'missing walkthrough')
-  let expected
-  try {
-    expected = runOnDataset(real.dataset, real.reference)
-  } catch (err) {
-    return fail(where, `reference query errors: ${err.message}`)
-  }
-  if (expected.rows.length === 0) fail(where, 'reference returns no rows')
-  if (expected.rows.length > 500) fail(where, `reference returns ${expected.rows.length} rows; keep results under 500 (the table shows 500)`)
-  const reversed = runOnDataset(real.dataset, real.reference, { reversed: true })
-  const verdict = gradeResult(reversed, expected, !!real.orderMatters)
-  if (!verdict.passed) fail(where, `answer depends on storage order (${verdict.reason}): there is a tie somewhere`)
-  if (!gradeResult(expected, expected, !!real.orderMatters).passed) fail(where, 'reference fails its own grading')
-  return `${expected.rows.length}x${expected.columns.length}`
-}
+const { checkReal: checkRealShared, datasetBytes, reverseTables } = createRealChecker({ root, manifest, fail })
+const checkReal = (where, real) => checkRealShared(SQL, where, real)
 
 const ids = new Set()
 let mcq = 0

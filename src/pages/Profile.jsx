@@ -2,18 +2,32 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
-import { lessons } from '../data/lessons'
+import { lessons, allProjects } from '../data/lessons'
 import { pyLessons } from '../data/python/index.js'
 import { gitLessons } from '../data/git/index.js'
 import { computeBadges, computeGitBadges, computePythonBadges } from '../lib/badges'
-import { ArrowLeft, Award, Check, CodeIcon, Database, GitBranch, Lock, Pencil, Sparkles, Trophy, UserIcon } from '../components/icons'
+import {
+  ArrowLeft,
+  Award,
+  Check,
+  CodeIcon,
+  Database,
+  Folder,
+  GitBranch,
+  Lock,
+  Pencil,
+  Sparkles,
+  Trophy,
+  UserIcon,
+} from '../components/icons'
 
-const badgeIcons = { award: Award, check: Check, sparkles: Sparkles, trophy: Trophy }
+const badgeIcons = { award: Award, check: Check, sparkles: Sparkles, trophy: Trophy, folder: Folder }
 
 const SNAPSHOTS = [
   { subject: 'sql', label: 'SQL', icon: Database, color: '#cfe3f5', iconColor: '#2f6f9e', lessons },
   { subject: 'python', label: 'Python', icon: CodeIcon, color: '#dcead9', iconColor: '#3f7a4d', lessons: pyLessons },
   { subject: 'git', label: 'Git', icon: GitBranch, color: '#f6dccb', iconColor: '#a05a2c', lessons: gitLessons },
+  { subject: 'sql-projects', label: 'SQL projects', icon: Folder, color: '#f5d3d3', iconColor: '#9e4a4a', lessons: allProjects },
 ]
 
 function getDisplayName(session) {
@@ -172,29 +186,51 @@ function Profile() {
         <div className="bg-surface rounded-2xl border border-heading/10 p-6">
           <p className="text-xs font-semibold text-accent-dark tracking-widest uppercase mb-4">Learning snapshot</p>
 
-          <div className="grid sm:grid-cols-3 gap-4">
-            {snapshots.map((s) => (
-              <div key={s.subject} className="rounded-xl bg-cream p-4">
-                <div className="flex items-start justify-between mb-1">
-                  <p className="font-display font-semibold text-3xl text-heading">{s.percent}%</p>
-                  <span
-                    className="flex h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: s.color, color: s.iconColor }}
-                  >
-                    <s.icon className="h-4 w-4" />
-                  </span>
-                </div>
-                <p className="text-sm text-caption mb-3">{s.label} path complete</p>
+          <div className="flex flex-col gap-4">
+            {snapshots.map((s) => {
+              const isProjects = s.subject === 'sql-projects'
+              return (
+                <div key={s.subject} className="rounded-xl bg-cream p-4">
+                  <div className="flex items-start justify-between mb-1">
+                    <p className="font-display font-semibold text-3xl text-heading">{s.percent}%</p>
+                    <span
+                      className="flex h-9 w-9 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: s.color, color: s.iconColor }}
+                    >
+                      <s.icon className="h-4 w-4" />
+                    </span>
+                  </div>
+                  <p className="text-sm text-caption mb-3">{isProjects ? s.label : `${s.label} path complete`}</p>
 
-                <div className="h-2 w-full rounded-full bg-surface overflow-hidden">
-                  <div className="h-full bg-heading rounded-full transition-[width]" style={{ width: `${s.percent}%` }} />
-                </div>
+                  <div className="h-2 w-full rounded-full bg-surface overflow-hidden">
+                    <div className="h-full bg-heading rounded-full transition-[width]" style={{ width: `${s.percent}%` }} />
+                  </div>
 
-                <p className="mt-3 text-xs text-caption">
-                  {s.completedCount} of {s.total} lesson{s.total === 1 ? '' : 's'} completed
-                </p>
-              </div>
-            ))}
+                  <p className="mt-3 text-xs text-caption">
+                    {s.completedCount} of {s.total} {isProjects ? 'project' : 'lesson'}
+                    {s.total === 1 ? '' : 's'} completed
+                  </p>
+
+                  {isProjects && (
+                    <ul className="mt-3 flex flex-col gap-1.5 border-t border-heading/10 pt-3">
+                      {allProjects.map((project) => {
+                        const done = completedIds.has(project.id)
+                        return (
+                          <li key={project.id} className="flex items-center gap-2 text-xs text-body-text">
+                            {done ? (
+                              <Check className="h-3 w-3 shrink-0 text-correct" />
+                            ) : (
+                              <Lock className="h-3 w-3 shrink-0 text-placeholder" />
+                            )}
+                            <span className={done ? 'text-heading' : ''}>{project.title}</span>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
 

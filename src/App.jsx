@@ -13,6 +13,7 @@ import Login from './pages/Login'
 import Layout from './components/Layout'
 import Lesson from './pages/Lesson'
 import ExamPage from './pages/ExamPage'
+import SqlProject from './pages/SqlProject'
 import SqlMainPage from './pages/SqlMainPage'
 import PlaygroundHome from './pages/PlaygroundHome'
 import ExerciseHome from './pages/ExerciseHome'
@@ -43,6 +44,7 @@ function App() {
           <Route path="/learn" element={<Learn />} />
           <Route path="/learn/:lessonType" element={<ProtectedRoute><SqlMainPage /></ProtectedRoute>}/>
           <Route path="/learn/sql/exam/:tier" element={<ProtectedRoute><ExamPage /></ProtectedRoute>} />
+          <Route path="/learn/sql/project/:projectId" element={<ProtectedRoute><SqlProject /></ProtectedRoute>} />
           <Route path='/learn/:lessonType/:lessonId' element={<ProtectedRoute><Lesson /></ProtectedRoute>}/>
           <Route path="/exercise" element={<ExerciseHome />} />
           <Route path="/exercise/:subject" element={<ProtectedRoute><ExercisePage /></ProtectedRoute>} />

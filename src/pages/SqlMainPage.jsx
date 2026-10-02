@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
-import { lessons, tierLessons, tiers, examId } from '../data/lessons'
+import { lessons, tierLessons, tiers, examId, tierProjects } from '../data/lessons'
 import { exams } from '../data/curriculum/exams'
 import { useCompletedLessons } from '../lib/useCompletedLessons'
 import { isStepUnlocked } from '../lib/lessonAccess'
 import { sqlPlayground } from '../data/playgrounds'
-import { ArrowLeft, ArrowRight, Database, Check, Lock, Terminal } from '../components/icons'
+import { ArrowLeft, ArrowRight, Database, Check, Folder, Lock, Terminal } from '../components/icons'
 
 const pad = (n) => String(n).padStart(2, '0')
 
@@ -228,6 +228,59 @@ function SqlMainPage() {
                       </div>
                     )
                   })()}
+
+                  {tierProjects(tier.id).map((project) => {
+                    const completed = completedIds.has(project.id)
+                    const unlocked = isStepUnlocked(project.id, completedIds)
+
+                    const body = (
+                      <>
+                        <div className="flex items-start gap-4">
+                          <span
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-[#1c1c1a]"
+                            style={{ backgroundColor: tier.color }}
+                          >
+                            {completed ? <Check className="h-4 w-4" /> : <Folder className="h-4 w-4" />}
+                          </span>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <p className="font-semibold text-heading">{project.title}</p>
+                              <span className="text-[10px] font-semibold tracking-widest text-accent-dark uppercase">
+                                {project.kind === 'guided' ? 'Guided project' : 'Unguided project'}
+                              </span>
+                              <StatusTag completed={completed} unlocked={unlocked} />
+                            </div>
+                            <p className="text-sm text-body-text">{unlocked ? project.blurb : 'Finish the step above to unlock this project.'}</p>
+                          </div>
+                        </div>
+                        {unlocked ? (
+                          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-heading text-cream shrink-0 group-hover:bg-heading/90 transition-colors">
+                            <ArrowRight className="h-4 w-4" />
+                          </span>
+                        ) : (
+                          <Lock className="h-4 w-4 text-placeholder shrink-0" />
+                        )}
+                      </>
+                    )
+
+                    return unlocked ? (
+                      <Link
+                        key={project.id}
+                        to={`/learn/sql/project/${project.id}`}
+                        className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-dotted border-heading/15 bg-surface p-6 hover:border-heading/30 transition-colors"
+                      >
+                        {body}
+                      </Link>
+                    ) : (
+                      <div
+                        key={project.id}
+                        aria-disabled="true"
+                        className="flex items-center justify-between gap-4 rounded-2xl border-2 border-dotted border-heading/10 bg-surface p-6 cursor-not-allowed"
+                      >
+                        {body}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )

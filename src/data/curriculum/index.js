@@ -4,6 +4,7 @@ import { intermediate } from './intermediate.js'
 import { advanced } from './advanced.js'
 import { expert } from './expert.js'
 import { realExtras } from './extras/index.js'
+import { projectsByTier } from './projects/index.js'
 
 export { tiers, tierById }
 
@@ -29,13 +30,20 @@ export const tierLessons = (tierId) => lessons.filter((l) => l.tier === tierId)
 
 export const examId = (tierId) => `exam-${tierId}`
 
+export const tierProjects = (tierId) => projectsByTier[tierId] ?? []
+export const projectById = Object.fromEntries(tiers.flatMap((t) => tierProjects(t.id)).map((p) => [p.id, p]))
+export const allProjects = tiers.flatMap((t) => tierProjects(t.id))
+
 export const sqlPath = tiers.flatMap((tier) => [
   ...tierLessons(tier.id).map((lesson) => ({ kind: 'lesson', id: lesson.id, tier: tier.id })),
   { kind: 'exam', id: examId(tier.id), tier: tier.id },
+  ...tierProjects(tier.id).map((project) => ({ kind: 'project', id: project.id, tier: tier.id })),
 ])
 
 export const pathIndex = (id) => sqlPath.findIndex((step) => step.id === id)
 
 export function pathUrl(step) {
-  return step.kind === 'exam' ? `/learn/sql/exam/${step.tier}` : `/learn/sql/${step.id}`
+  if (step.kind === 'exam') return `/learn/sql/exam/${step.tier}`
+  if (step.kind === 'project') return `/learn/sql/project/${step.id}`
+  return `/learn/sql/${step.id}`
 }

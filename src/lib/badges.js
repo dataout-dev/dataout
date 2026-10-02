@@ -1,4 +1,4 @@
-import { lessons, tiers, tierLessons, examId } from '../data/lessons'
+import { lessons, tiers, tierLessons, examId, tierProjects } from '../data/lessons'
 import { pyLessons, pyLiveTiers, pyTierLessons, pyExamId } from '../data/python/index.js'
 import { gitLessons, gitLiveTiers, gitTierLessons, gitExamId } from '../data/git/index.js'
 
@@ -80,7 +80,7 @@ function buildBadges({
 
 export function computeBadges(completedIds) {
   const sqlLessons = lessons.filter((l) => l.subject === 'sql')
-  return buildBadges({
+  const badges = buildBadges({
     prefix: 'sql',
     subjectLessons: sqlLessons,
     liveTiers: tiers,
@@ -92,6 +92,23 @@ export function computeBadges(completedIds) {
     graduateTitle: 'SQL graduate',
     graduateDescription: `Finish every lesson and pass all ${tiers.length} tier exams.`,
   })
+
+  for (const tier of tiers) {
+    for (const project of tierProjects(tier.id)) {
+      badges.push({
+        id: `sql-project-${project.id}`,
+        icon: 'folder',
+        color: project.kind === 'guided' ? '#cfe3f5' : '#d7f0e6',
+        title: project.title,
+        description:
+          project.kind === 'guided' ? `Finish all ${project.parts.length} parts of this project.` : 'Mark this project complete.',
+        earned: completedIds.has(project.id),
+        progress: [completedIds.has(project.id) ? 1 : 0, 1],
+      })
+    }
+  }
+
+  return badges
 }
 
 export function computePythonBadges(completedIds) {

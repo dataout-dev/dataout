@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "check:exercises": "node scripts/check-exercises.mjs",
     "check:curriculum": "node scripts/check-curriculum.mjs",
+    "check:projects": "node scripts/check-projects.mjs",
     "check:python": "node scripts/check-python.mjs",
     "check:git": "node scripts/check-git.mjs",
     "preview": "vite preview"

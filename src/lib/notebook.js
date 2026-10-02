@@ -173,18 +173,18 @@ export function parseNotebook(text) {
   }
 }
 
-export function loadSavedNotebook() {
+export function loadSavedNotebook(key = STORAGE_KEY) {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY)
+    const saved = localStorage.getItem(key)
     return saved ? parseNotebook(saved) : null
   } catch {
     return null
   }
 }
 
-export function saveNotebook(notebook) {
+export function saveNotebook(notebook, key = STORAGE_KEY) {
   try {
-    localStorage.setItem(STORAGE_KEY, serializeNotebook(notebook))
+    localStorage.setItem(key, serializeNotebook(notebook))
     return true
   } catch {
     return false
