@@ -16,7 +16,7 @@ export const gitTiers = [
     tagline: 'Branches, merges, rebases, and recovering when it goes wrong.',
     audience: 'Finish Git Foundations and pass its exam to unlock this tier.',
     color: '#f4e2d0',
-    soon: true,
+    examPassPercent: 70,
   },
   {
     id: 'remotes',

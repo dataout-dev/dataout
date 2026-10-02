@@ -138,7 +138,30 @@ function seedAuthor(offsetSeconds) {
   return { ...AUTHOR, timestamp: SEED_EPOCH + offsetSeconds, timezoneOffset: SIM_TZ_OFFSET }
 }
 
+async function seedCommits(fs, dir, commits) {
+  let lastOid = null
+  for (const commit of commits ?? []) {
+    for (const [filepath, content] of Object.entries(commit.files ?? {})) {
+      if (content === null) {
+        await removeWorkingFile(fs, dir, filepath)
+        await git.remove({ fs, dir, filepath }).catch(() => {})
+      } else {
+        await writeWorkingFile(fs, dir, filepath, content)
+        await git.add({ fs, dir, filepath })
+      }
+    }
+    const when = seedAuthor(seedCounter * 60)
+    seedCounter += 1
+    lastOid = await git.commit({ fs, dir, message: commit.message, author: when, committer: when })
+  }
+  return lastOid
+}
+
 // spec: { defaultBranch, commits: [{ message, files: { path: content|null }, author? }],
+//         branches: [{ name, from: ref|undefined (defaults to wherever HEAD is), commits: [...] }],
+//         mergeAttempt: { into, from } — checks out `into` and attempts to merge `from`,
+//         leaving a real mid-conflict repo state (conflict markers + MERGE_HEAD) if it conflicts,
+//         checkout: branchName — which branch to leave checked out at the end,
 //         stagedChanges: { path: content|null }, workingChanges: { path: content|null },
 //         gitignore, uninitialized: true, files: { path: content } }
 // uninitialized seeds a plain folder of files with no .git at all yet — used by the one
@@ -155,20 +178,26 @@ export async function seedRepo(fs, dir, spec = {}) {
   }
   await initRepo(fs, dir, { defaultBranch: spec.defaultBranch ?? 'main' })
   if (spec.gitignore != null) await writeWorkingFile(fs, dir, '.gitignore', spec.gitignore)
-  for (const commit of spec.commits ?? []) {
-    for (const [filepath, content] of Object.entries(commit.files ?? {})) {
-      if (content === null) {
-        await removeWorkingFile(fs, dir, filepath)
-        await git.remove({ fs, dir, filepath }).catch(() => {})
-      } else {
-        await writeWorkingFile(fs, dir, filepath, content)
-        await git.add({ fs, dir, filepath })
-      }
-    }
-    const when = seedAuthor(seedCounter * 60)
-    seedCounter += 1
-    await git.commit({ fs, dir, message: commit.message, author: when, committer: when })
+  await seedCommits(fs, dir, spec.commits)
+
+  for (const branch of spec.branches ?? []) {
+    if (branch.from) await git.checkout({ fs, dir, ref: branch.from })
+    // A branch entry naming an already-existing branch (e.g. the default branch itself)
+    // just appends more commits to it, instead of trying to re-create it.
+    const existing = await git.listBranches({ fs, dir })
+    if (existing.includes(branch.name)) await git.checkout({ fs, dir, ref: branch.name })
+    else await git.branch({ fs, dir, ref: branch.name, checkout: true })
+    await seedCommits(fs, dir, branch.commits)
   }
+
+  if (spec.mergeAttempt) {
+    const { into, from } = spec.mergeAttempt
+    await git.checkout({ fs, dir, ref: into })
+    await mergeBranch(fs, dir, from)
+  }
+
+  if (spec.checkout) await git.checkout({ fs, dir, ref: spec.checkout })
+
   for (const [filepath, content] of Object.entries(spec.stagedChanges ?? {})) {
     if (content === null) {
       await git.remove({ fs, dir, filepath })
@@ -359,6 +388,15 @@ export async function commit(fs, dir, message, { amend = false } = {}) {
     const prev = head ? await git.readCommit({ fs, dir, oid: head }) : null
     return git.commit({ fs, dir, message, author: AUTHOR, committer: AUTHOR, amend: true, parent: prev?.commit.parent })
   }
+  // A paused merge (see mergeBranch/mergeInProgress below) needs its second parent recorded
+  // explicitly — real git does this via .git/MERGE_HEAD the same way.
+  if (await mergeInProgress(fs, dir)) {
+    const theirsOid = await mergeHeadOid(fs, dir)
+    const oursOid = await headOid(fs, dir)
+    const oid = await git.commit({ fs, dir, message, author: AUTHOR, committer: AUTHOR, parent: [oursOid, theirsOid] })
+    await clearMergeState(fs, dir)
+    return oid
+  }
   return git.commit({ fs, dir, message, author: AUTHOR, committer: AUTHOR })
 }
 
@@ -428,4 +466,144 @@ export async function revertCommit(fs, dir, ref) {
 export async function createTag(fs, dir, name, ref = 'HEAD') {
   const oid = await expandRef(fs, dir, ref)
   await git.tag({ fs, dir, ref: name, object: oid, force: false })
+}
+
+// --- Branching & merging (Tier 2) ---
+
+export async function createBranch(fs, dir, name, { checkout = false, startPoint } = {}) {
+  const object = startPoint ? await expandRef(fs, dir, startPoint) : undefined
+  await git.branch({ fs, dir, ref: name, object, checkout })
+}
+
+export async function switchBranch(fs, dir, name) {
+  await git.checkout({ fs, dir, ref: name })
+}
+
+export async function renameBranchTo(fs, dir, oldName, newName) {
+  await git.renameBranch({ fs, dir, ref: newName, oldref: oldName, checkout: true })
+}
+
+// Real git refuses a plain `-d` on a branch whose tip isn't reachable from the current
+// branch (i.e. it has commits that were never merged anywhere); `-D` skips that check.
+// isomorphic-git's deleteBranch does no such check itself, so it's hand-rolled here.
+export async function isMergedInto(fs, dir, branchName, intoRef = 'HEAD') {
+  const branchOid = await expandRef(fs, dir, branchName)
+  const intoOid = await expandRef(fs, dir, intoRef)
+  if (branchOid === intoOid) return true
+  return git.isDescendent({ fs, dir, oid: intoOid, ancestor: branchOid })
+}
+
+export async function deleteBranchByName(fs, dir, name, { force = false } = {}) {
+  if (!force) {
+    const current = await currentBranchName(fs, dir)
+    const merged = await isMergedInto(fs, dir, name, current ?? 'HEAD')
+    if (!merged) {
+      const err = new Error(
+        `error: the branch '${name}' is not fully merged.\nIf you are sure you want to delete it, run 'git branch -D ${name}'.`
+      )
+      err.code = 'NOT_MERGED'
+      throw err
+    }
+  }
+  await git.deleteBranch({ fs, dir, ref: name })
+}
+
+// --- Merge state (mirrors real git's .git/MERGE_HEAD + MERGE_MSG) ---
+// isomorphic-git has no concept of an in-progress merge: a conflicting `git.merge(...)`
+// call just throws and leaves conflict markers on disk. These two small marker files are
+// how this sandbox remembers "a merge is paused here, waiting on a commit" across separate
+// terminal commands, exactly like real git does.
+
+const mergeHeadPath = (dir) => `${dir}/.git/MERGE_HEAD`
+const mergeMsgPath = (dir) => `${dir}/.git/MERGE_MSG`
+
+async function readMarker(fs, path) {
+  try {
+    return await fs.promises.readFile(path, { encoding: 'utf8' })
+  } catch {
+    return null
+  }
+}
+
+export async function mergeInProgress(fs, dir) {
+  return (await readMarker(fs, mergeHeadPath(dir))) !== null
+}
+
+export async function mergeHeadOid(fs, dir) {
+  const content = await readMarker(fs, mergeHeadPath(dir))
+  return content ? content.trim() : null
+}
+
+export async function mergeMessage(fs, dir) {
+  return readMarker(fs, mergeMsgPath(dir))
+}
+
+async function clearMergeState(fs, dir) {
+  await fs.promises.unlink(mergeHeadPath(dir)).catch(() => {})
+  await fs.promises.unlink(mergeMsgPath(dir)).catch(() => {})
+}
+
+// Attempts `theirs` into the current branch. Returns { conflict, fastForward, filepaths }.
+// On conflict, isomorphic-git (with abortOnConflict: false) already writes conflict markers
+// into the working tree and index for us — this just records which merge is paused, so a
+// later plain `git commit` knows to create a real two-parent merge commit.
+export async function mergeBranch(fs, dir, theirs, { noFastForward = false } = {}) {
+  const ours = await currentBranchName(fs, dir)
+  const theirsOid = await expandRef(fs, dir, theirs)
+  try {
+    const result = await git.merge({
+      fs,
+      dir,
+      ours,
+      theirs,
+      fastForward: !noFastForward,
+      abortOnConflict: false,
+      author: AUTHOR,
+      committer: AUTHOR,
+    })
+    // isomorphic-git's merge() only moves refs/writes the tree object; it never syncs the
+    // working directory itself (true even for a plain fast-forward), so this does it explicitly.
+    await git.checkout({ fs, dir, ref: ours, force: true })
+    return { conflict: false, fastForward: Boolean(result.fastForward), filepaths: [] }
+  } catch (err) {
+    if (err?.code !== 'MergeConflictError') throw err
+    await fs.promises.writeFile(mergeHeadPath(dir), theirsOid)
+    await fs.promises.writeFile(mergeMsgPath(dir), `Merge branch '${theirs}' into ${ours}\n`)
+    return { conflict: true, fastForward: false, filepaths: err.data?.filepaths ?? [] }
+  }
+}
+
+export async function abortMergeState(fs, dir) {
+  if (!(await mergeInProgress(fs, dir))) throw new Error('fatal: There is no merge to abort')
+  await git.abortMerge({ fs, dir })
+  await clearMergeState(fs, dir)
+}
+
+// A file still shows conflict markers until the learner resolves it by hand.
+export async function hasConflictMarkers(fs, dir, filepath) {
+  const content = await readWorkingFile(fs, dir, filepath)
+  return content != null && content.includes('<<<<<<<')
+}
+
+// Simplified, non-conflicting rebase: replays each commit unique to the current branch
+// (since it diverged from `onto`) on top of `onto`'s tip, one at a time, via cherry-pick.
+// Real `git rebase` can pause for conflict resolution mid-replay; that case is out of scope
+// here (this sandbox never seeds a rebase onto conflicting history), matching how revert
+// and merge both stay in their non-conflicting/hand-resolved lanes elsewhere in this app.
+export async function rebaseOnto(fs, dir, onto) {
+  const branch = await currentBranchName(fs, dir)
+  if (!branch) throw new Error('fatal: not currently on a branch')
+  const ontoOid = await expandRef(fs, dir, onto)
+  const [base] = await git.findMergeBase({ fs, dir, oids: [await headOid(fs, dir), ontoOid] })
+  const commits = await git.log({ fs, dir, ref: branch })
+  const baseIndex = commits.findIndex((c) => c.oid === base)
+  const sinceBase = baseIndex === -1 ? commits : commits.slice(0, baseIndex)
+  const toReplay = sinceBase.map((c) => c.oid).reverse() // oldest first
+
+  await git.checkout({ fs, dir, ref: onto })
+  await git.deleteBranch({ fs, dir, ref: branch }).catch(() => {})
+  await git.branch({ fs, dir, ref: branch, checkout: true })
+  for (const oid of toReplay) {
+    await git.cherryPick({ fs, dir, oid, author: AUTHOR, committer: AUTHOR })
+  }
 }

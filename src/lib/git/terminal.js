@@ -32,15 +32,17 @@ export function tokenize(line) {
   return tokens
 }
 
-function parseFlags(args) {
+// `-m` means "commit message" for `git commit` but "rename" for `git branch` — only
+// commit's `-m` consumes the next token as a value; everywhere else it's a plain flag.
+function parseFlags(args, { messageFlag = false } = {}) {
   const flags = new Set()
   const opts = {}
   const positional = []
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i]
-    if (arg === '-m' || arg === '--message') {
+    if (messageFlag && (arg === '-m' || arg === '--message')) {
       opts.message = args[++i]
-    } else if (arg.startsWith('--message=')) {
+    } else if (messageFlag && arg.startsWith('--message=')) {
       opts.message = arg.slice('--message='.length)
     } else if (arg.startsWith('--')) {
       flags.add(arg.slice(2))
@@ -122,6 +124,9 @@ async function cmdStatus(fs, dir, { flags }) {
   const unstaged = rows.filter((r) => r.unstaged)
   const untracked = rows.filter((r) => r.untracked)
   const lines = [`On branch ${branch}`]
+  if (await eng.mergeInProgress(fs, dir)) {
+    lines.push('You have unmerged paths.', '  (fix conflicts and run "git commit")', '  (use "git merge --abort" to abort the merge)', '')
+  }
   if (staged.length) {
     lines.push('Changes to be committed:')
     for (const r of staged) lines.push(`\t${r.staged}:   ${r.filepath}`)
@@ -221,12 +226,78 @@ async function cmdRestore(fs, dir, { flags, positional }) {
   return ok('')
 }
 
-async function cmdCheckout(fs, dir, { positional }) {
+async function cmdCheckout(fs, dir, { flags, positional }) {
   const dashDash = positional.indexOf('--')
-  if (dashDash === -1) return err('error: this sandbox only supports "git checkout -- <path>" (restoring a file)')
-  const paths = positional.slice(dashDash + 1)
-  for (const filepath of paths) await eng.restoreWorking(fs, dir, filepath)
+  if (dashDash !== -1) {
+    for (const filepath of positional.slice(dashDash + 1)) await eng.restoreWorking(fs, dir, filepath)
+    return ok('')
+  }
+  if (flags.has('b')) {
+    if (positional.length === 0) return err('error: switch `b` requires a value')
+    const [name, startPoint] = positional
+    await eng.createBranch(fs, dir, name, { checkout: true, startPoint })
+    return ok(`Switched to a new branch '${name}'`)
+  }
+  if (positional.length === 0) return err('error: you must specify a branch, commit or path')
+  await eng.switchBranch(fs, dir, positional[0])
+  return ok(`Switched to branch '${positional[0]}'`)
+}
+
+async function cmdSwitch(fs, dir, { flags, positional }) {
+  if (flags.has('c')) {
+    if (positional.length === 0) return err('error: switch `c` requires a value')
+    const [name, startPoint] = positional
+    await eng.createBranch(fs, dir, name, { checkout: true, startPoint })
+    return ok(`Switched to a new branch '${name}'`)
+  }
+  if (positional.length === 0) return err('error: you must specify a branch')
+  await eng.switchBranch(fs, dir, positional[0])
+  return ok(`Switched to branch '${positional[0]}'`)
+}
+
+async function cmdBranch(fs, dir, { flags, positional }) {
+  if (flags.has('m')) {
+    const current = await eng.currentBranchName(fs, dir)
+    const [a, b] = positional
+    const [oldName, newName] = positional.length >= 2 ? [a, b] : [current, a]
+    if (!newName) return err('error: switch `m` requires a value')
+    await eng.renameBranchTo(fs, dir, oldName, newName)
+    return ok('')
+  }
+  if (flags.has('d') || flags.has('D')) {
+    if (positional.length === 0) return err('error: branch name required')
+    await eng.deleteBranchByName(fs, dir, positional[0], { force: flags.has('D') })
+    return ok(`Deleted branch ${positional[0]}`)
+  }
+  if (positional.length === 0) {
+    const [branches, current] = await Promise.all([eng.listBranchNames(fs, dir), eng.currentBranchName(fs, dir)])
+    return ok(branches.map((b) => (b === current ? `* ${b}` : `  ${b}`)).join('\n'))
+  }
+  const [name, startPoint] = positional
+  await eng.createBranch(fs, dir, name, { startPoint })
   return ok('')
+}
+
+async function cmdMerge(fs, dir, { flags, positional }) {
+  if (flags.has('abort')) {
+    await eng.abortMergeState(fs, dir)
+    return ok('')
+  }
+  if (positional.length === 0) return err('error: you must specify a branch to merge')
+  const result = await eng.mergeBranch(fs, dir, positional[0], { noFastForward: flags.has('no-ff') })
+  if (result.conflict) {
+    return err(
+      `Auto-merging ${result.filepaths.join(', ')}\nCONFLICT (content): Merge conflict in ${result.filepaths.join(', ')}\nAutomatic merge failed; fix conflicts and then commit the result.`
+    )
+  }
+  if (result.fastForward) return ok(`Updating\nFast-forward`)
+  return ok(`Merge made by the 'ort' strategy.`)
+}
+
+async function cmdRebase(fs, dir, { positional }) {
+  if (positional.length === 0) return err('error: you must specify a branch to rebase onto')
+  await eng.rebaseOnto(fs, dir, positional[0])
+  return ok(`Successfully rebased onto ${positional[0]}.`)
 }
 
 async function cmdReset(fs, dir, { flags, positional }) {
@@ -301,6 +372,10 @@ const HANDLERS = {
   log: cmdLog,
   restore: cmdRestore,
   checkout: cmdCheckout,
+  switch: cmdSwitch,
+  branch: cmdBranch,
+  merge: cmdMerge,
+  rebase: cmdRebase,
   reset: cmdReset,
   revert: cmdRevert,
   show: cmdShow,
@@ -315,7 +390,7 @@ export async function runCommand(fs, dir, line) {
   const handler = HANDLERS[sub]
   if (!handler) return err(`git: '${sub}' is not supported in this sandbox`)
   try {
-    return await handler(fs, dir, parseFlags(rest))
+    return await handler(fs, dir, parseFlags(rest, { messageFlag: sub === 'commit' }))
   } catch (e) {
     return err(e.message ?? String(e))
   }

@@ -1,9 +1,10 @@
 import { gitTiers, gitTierById } from './tiers.js'
 import { foundationsSections } from './foundations/index.js'
+import { branchingSections } from './branching/index.js'
 
 export { gitTiers, gitTierById }
 
-const sectionsByTier = { foundations: foundationsSections }
+const sectionsByTier = { foundations: foundationsSections, branching: branchingSections }
 
 let counter = 0
 export const gitSections = gitTiers.flatMap((tier) =>

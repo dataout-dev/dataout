@@ -19,6 +19,9 @@ export function makeHelpers(fs, dir) {
     tags: () => eng.listTagNames(fs, dir),
     tagTarget: (name) => eng.tagTarget(fs, dir, name),
     commitCount: async (ref = 'HEAD') => (await eng.repoLog(fs, dir, ref)).length,
+    isMergedInto: (branch, intoRef = 'HEAD') => eng.isMergedInto(fs, dir, branch, intoRef),
+    mergeInProgress: () => eng.mergeInProgress(fs, dir),
+    conflicted: (filepath) => eng.hasConflictMarkers(fs, dir, filepath),
   }
 }
 
