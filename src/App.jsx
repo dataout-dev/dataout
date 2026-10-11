@@ -21,6 +21,7 @@ import ExercisePage from './pages/ExercisePage'
 import ProtectedRoute from './components/ProtectedRoute'
 import PostLoginRedirect from './components/PostLoginRedirect'
 
+const Subscribe = lazy(() => import('./pages/Subscribe'))
 const Playground = lazy(() => import('./pages/Playground'))
 const PythonPlayground = lazy(() => import('./pages/PythonPlayground'))
 const PythonPath = lazy(() => import('./pages/python/PythonPath'))
@@ -50,6 +51,16 @@ function App() {
           <Route path="/exercise/:subject" element={<ProtectedRoute><ExercisePage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/settings" element={<Settings />} />
+          <Route
+            path="/subscribe"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading...</p>}>
+                  <Subscribe />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
           <Route path="/playground" element={<PlaygroundHome />} />
           <Route
             path="/playground/sql"

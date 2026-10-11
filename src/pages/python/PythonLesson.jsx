@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { pyLessonById, pyTierById, pyTierLessons, pySections } from '../../data/python/index.js'
 import { isLessonUnlocked, nextLessonAfter } from '../../lib/pythonAccess'
+import { useSubscription } from '../../lib/useSubscription'
+import { isPremiumKeyLocked, pythonTierKey } from '../../lib/premiumAccess'
 import { loadPythonDoc } from '../../lib/pythonDocs'
 import { gradePractice, resetSession, runSamples, runSnippet, warmUpPython } from '../../lib/pythonGrading'
 import { usePythonChallenge } from '../../lib/usePythonChallenge'
@@ -418,6 +420,7 @@ function LessonView() {
 
   const { session } = useAuth()
   const { completedIds, loaded, markCompleted } = useCompletedLessons()
+  const subscription = useSubscription()
   const [tab, setTab] = useState('learn')
   const [realOpened, setRealOpened] = useState(false)
   const [doc, setDoc] = useState(undefined)
@@ -447,8 +450,11 @@ function LessonView() {
     )
   }
 
-  if (!loaded) return null
-  if (!isLessonUnlocked(lesson.id, completedIds)) return <Navigate to="/learn/python" replace />
+  if (!loaded || !subscription.loaded) return null
+  if (!subscription.isActive && !isLessonUnlocked(lesson.id, completedIds)) return <Navigate to="/learn/python" replace />
+  if (!completedIds.has(lesson.id) && isPremiumKeyLocked(pythonTierKey(lesson.tier), subscription.isActive)) {
+    return <Navigate to="/subscribe" replace />
+  }
 
   const hasPractice = Boolean(lesson.practice)
   const hasReal = lesson.real.length > 0

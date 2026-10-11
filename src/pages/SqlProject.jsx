@@ -7,6 +7,8 @@ import { pathIndex, pathUrl, projectById, sqlPath, tierById } from '../data/less
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { isStepUnlocked } from '../lib/lessonAccess'
+import { useSubscription } from '../lib/useSubscription'
+import { isPremiumKeyLocked, sqlProjectKey } from '../lib/premiumAccess'
 import { loadExerciseProgress } from '../lib/exerciseProgress'
 import { useChallenge } from '../lib/useChallenge'
 import { useCompletedLessons } from '../lib/useCompletedLessons'
@@ -486,6 +488,7 @@ function SqlProjectView() {
 
   const { session } = useAuth()
   const { completedIds, loaded, markCompleted } = useCompletedLessons()
+  const subscription = useSubscription()
 
   if (!project) {
     return (
@@ -495,8 +498,11 @@ function SqlProjectView() {
     )
   }
 
-  if (!loaded) return null
-  if (!isStepUnlocked(project.id, completedIds)) return <Navigate to="/learn/sql" replace />
+  if (!loaded || !subscription.loaded) return null
+  if (!subscription.isActive && !isStepUnlocked(project.id, completedIds)) return <Navigate to="/learn/sql" replace />
+  if (!completedIds.has(project.id) && isPremiumKeyLocked(sqlProjectKey(project.id), subscription.isActive)) {
+    return <Navigate to="/subscribe" replace />
+  }
 
   return project.kind === 'guided' ? (
     <GuidedProjectView project={project} tier={tier} completedIds={completedIds} markCompleted={markCompleted} session={session} />

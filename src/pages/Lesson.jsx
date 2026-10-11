@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { useCompletedLessons } from '../lib/useCompletedLessons'
 import { isStepUnlocked } from '../lib/lessonAccess'
+import { useSubscription } from '../lib/useSubscription'
+import { isPremiumKeyLocked, sqlTierKey } from '../lib/premiumAccess'
 import { loadExerciseProgress } from '../lib/exerciseProgress'
 import { loadLessonDoc } from '../lib/lessonDocs'
 import Markdown from '../components/Markdown'
@@ -181,6 +183,7 @@ function LessonView() {
 
   const { session } = useAuth()
   const { completedIds, loaded, markCompleted } = useCompletedLessons()
+  const subscription = useSubscription()
   const sampleExpectedRef = useRef([])
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
@@ -239,10 +242,14 @@ function LessonView() {
     )
   }
 
-  if (!loaded) return null
+  if (!loaded || !subscription.loaded) return null
 
-  if (!isStepUnlocked(lesson.id, completedIds)) {
+  if (!subscription.isActive && !isStepUnlocked(lesson.id, completedIds)) {
     return <Navigate to="/learn/sql" replace />
+  }
+
+  if (!completedIds.has(lesson.id) && isPremiumKeyLocked(sqlTierKey(lesson.tier), subscription.isActive)) {
+    return <Navigate to="/subscribe" replace />
   }
 
   const complete = async () => {

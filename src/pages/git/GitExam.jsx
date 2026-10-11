@@ -7,6 +7,8 @@ import { gitExamId, gitTierById } from '../../data/git/index.js'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { isExamUnlocked } from '../../lib/gitAccess'
+import { useSubscription } from '../../lib/useSubscription'
+import { isPremiumKeyLocked, gitTierKey } from '../../lib/premiumAccess'
 import { loadExerciseProgress, saveExerciseProgress } from '../../lib/exerciseProgress'
 import { useGitChallenge } from '../../lib/useGitChallenge'
 import { useCompletedLessons } from '../../lib/useCompletedLessons'
@@ -261,6 +263,7 @@ function GitExam() {
   const tier = gitTierById[tierId]
   const { session } = useAuth()
   const { completedIds, loaded, markCompleted } = useCompletedLessons()
+  const subscription = useSubscription()
 
   if (!tier || tier.soon) {
     return (
@@ -270,11 +273,14 @@ function GitExam() {
     )
   }
 
-  if (!loaded) return null
+  if (!loaded || !subscription.loaded) return null
 
   const questions = gitExams[tier.id] ?? []
   const stepId = gitExamId(tier.id)
-  if (questions.length === 0 || !isExamUnlocked(tier.id, completedIds)) return <Navigate to="/learn/git" replace />
+  if (questions.length === 0 || (!subscription.isActive && !isExamUnlocked(tier.id, completedIds))) return <Navigate to="/learn/git" replace />
+  if (!completedIds.has(stepId) && isPremiumKeyLocked(gitTierKey(tier.id), subscription.isActive)) {
+    return <Navigate to="/subscribe" replace />
+  }
 
   const onPass = async () => {
     markCompleted(stepId)

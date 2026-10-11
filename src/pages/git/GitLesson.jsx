@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { gitLessonById, gitSections, gitTierById, gitTierLessons } from '../../data/git/index.js'
 import { isLessonUnlocked, nextLessonAfter } from '../../lib/gitAccess'
+import { useSubscription } from '../../lib/useSubscription'
+import { isPremiumKeyLocked, gitTierKey } from '../../lib/premiumAccess'
 import { loadGitDoc } from '../../lib/gitDocs'
 import { useGitChallenge } from '../../lib/useGitChallenge'
 import { useAuth } from '../../context/AuthContext'
@@ -87,6 +89,7 @@ function LessonView() {
 
   const { session } = useAuth()
   const { completedIds, loaded, markCompleted } = useCompletedLessons()
+  const subscription = useSubscription()
   const [tab, setTab] = useState('learn')
   const [doc, setDoc] = useState(undefined)
 
@@ -113,8 +116,11 @@ function LessonView() {
     )
   }
 
-  if (!loaded) return null
-  if (!isLessonUnlocked(lesson.id, completedIds)) return <Navigate to="/learn/git" replace />
+  if (!loaded || !subscription.loaded) return null
+  if (!subscription.isActive && !isLessonUnlocked(lesson.id, completedIds)) return <Navigate to="/learn/git" replace />
+  if (!completedIds.has(lesson.id) && isPremiumKeyLocked(gitTierKey(lesson.tier), subscription.isActive)) {
+    return <Navigate to="/subscribe" replace />
+  }
 
   const hasPractice = Boolean(lesson.practice)
   const tabs = [{ id: 'learn', label: 'Learn' }, ...(hasPractice ? [{ id: 'practice', label: 'Practice' }] : [])]

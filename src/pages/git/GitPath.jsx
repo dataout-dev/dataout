@@ -3,6 +3,9 @@ import { gitExamId, gitLessons, gitSections, gitTierLessons, gitTiers } from '..
 import { gitExams } from '../../data/git/exams/index.js'
 import { isExamUnlocked, isLessonUnlocked, isTierUnlocked } from '../../lib/gitAccess'
 import { useCompletedLessons } from '../../lib/useCompletedLessons'
+import { useSubscription } from '../../lib/useSubscription'
+import { isPremiumKeyLocked, isPremiumKey, gitTierKey } from '../../lib/premiumAccess'
+import PremiumBadge from '../../components/PremiumBadge'
 import { ArrowLeft, ArrowRight, Check, ChevronDown, GitBranch, Lock } from '../../components/icons'
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -15,7 +18,7 @@ function StatusTag({ completed, unlocked }) {
 
 const kindLabel = { learn: 'Learn-heavy', read: 'Reading', code: 'Practice' }
 
-function LessonRow({ lesson, completed, unlocked }) {
+function LessonRow({ lesson, completed, unlocked, premiumLocked, tierIsPremium }) {
   const body = (
     <>
       <div className="flex items-start gap-4 min-w-0">
@@ -31,10 +34,11 @@ function LessonRow({ lesson, completed, unlocked }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <p className="font-semibold text-heading">{lesson.title}</p>
+            {tierIsPremium && <PremiumBadge />}
             <StatusTag completed={completed} unlocked={unlocked} />
           </div>
           <p className="text-sm text-body-text">
-            {unlocked ? lesson.blurb : 'Complete the earlier lessons to unlock this one.'}
+            {unlocked ? lesson.blurb : premiumLocked ? 'Subscribers only.' : 'Complete the earlier lessons to unlock this one.'}
             <span className="text-caption"> · {kindLabel[lesson.kind]}</span>
           </p>
         </div>
@@ -56,6 +60,13 @@ function LessonRow({ lesson, completed, unlocked }) {
     >
       {body}
     </Link>
+  ) : premiumLocked ? (
+    <Link
+      to="/subscribe"
+      className="group flex items-center justify-between gap-4 bg-surface rounded-xl border border-heading/10 px-5 py-4 hover:border-heading/20 transition-colors"
+    >
+      {body}
+    </Link>
   ) : (
     <div aria-disabled="true" className="flex items-center justify-between gap-4 bg-surface rounded-xl border border-heading/10 px-5 py-4 cursor-not-allowed">
       {body}
@@ -63,11 +74,13 @@ function LessonRow({ lesson, completed, unlocked }) {
   )
 }
 
-function ExamRow({ tier, completedIds }) {
+function ExamRow({ tier, completedIds, premiumLocked, tierIsPremium, subscriptionActive }) {
   const questions = gitExams[tier.id] ?? []
   const points = questions.reduce((sum, q) => sum + q.points, 0)
-  const unlocked = isExamUnlocked(tier.id, completedIds) && questions.length > 0
+  const structurallyUnlocked = (isExamUnlocked(tier.id, completedIds) || subscriptionActive) && questions.length > 0
   const passed = completedIds.has(gitExamId(tier.id))
+  const locked = structurallyUnlocked && !passed && premiumLocked
+  const unlocked = structurallyUnlocked && !locked
   const lessonCount = gitTierLessons(tier.id).length
 
   const body = (
@@ -79,6 +92,7 @@ function ExamRow({ tier, completedIds }) {
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <p className="font-semibold text-heading">{tier.name} tier exam</p>
+            {tierIsPremium && <PremiumBadge />}
             <StatusTag completed={passed} unlocked={unlocked} />
           </div>
           <p className="text-sm text-body-text">
@@ -86,7 +100,9 @@ function ExamRow({ tier, completedIds }) {
               ? 'The exam for this tier is being written.'
               : unlocked
                 ? `${questions.length} questions · ${points} points · pass at ${tier.examPassPercent}%`
-                : `Finish all ${lessonCount} lessons in this tier to unlock the exam.`}
+                : locked
+                  ? 'Subscribers only.'
+                  : `Finish all ${lessonCount} lessons in this tier to unlock the exam.`}
           </p>
         </div>
       </div>
@@ -107,6 +123,13 @@ function ExamRow({ tier, completedIds }) {
     >
       {body}
     </Link>
+  ) : locked ? (
+    <Link
+      to="/subscribe"
+      className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-heading/15 bg-surface p-6 hover:border-heading/30 transition-colors"
+    >
+      {body}
+    </Link>
   ) : (
     <div aria-disabled="true" className="flex items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-heading/10 bg-surface p-6 cursor-not-allowed">
       {body}
@@ -116,6 +139,7 @@ function ExamRow({ tier, completedIds }) {
 
 function GitPath() {
   const { completedIds } = useCompletedLessons()
+  const subscription = useSubscription()
   const doneCount = gitLessons.filter((l) => completedIds.has(l.id)).length
 
   return (
@@ -182,6 +206,8 @@ function GitPath() {
             const tierSections = gitSections.filter((s) => s.tier === tier.id)
             const tierUnlocked = isTierUnlocked(tier.id, completedIds)
             const tierStartOpen = !(tierItems.length > 0 && done === tierItems.length)
+            const tierPremiumLocked = isPremiumKeyLocked(gitTierKey(tier.id), subscription.isActive)
+            const tierIsPremium = isPremiumKey(gitTierKey(tier.id))
 
             return (
               <details key={tier.id} id={tier.id} open={tierStartOpen} className="group">
@@ -192,7 +218,10 @@ function GitPath() {
                         Tier {tier.number}
                         {tier.entry ? ' · Open from the start' : ''}
                       </p>
-                      <h3 className="font-display text-3xl font-semibold text-[#1c1c1a]">{tier.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-display text-3xl font-semibold text-[#1c1c1a]">{tier.name}</h3>
+                        {tierIsPremium && <PremiumBadge />}
+                      </div>
                       <p className="mt-1 text-sm text-[#3f3b37]">{tier.tagline}</p>
                       <p className="mt-3 text-xs text-[#57534e]">{tier.audience}</p>
                     </div>
@@ -243,20 +272,33 @@ function GitPath() {
                           </div>
                         </summary>
                         <div className="flex flex-col gap-3 px-3 pb-3">
-                          {section.lessons.map((lesson) => (
-                            <LessonRow
-                              key={lesson.id}
-                              lesson={gitLessons.find((l) => l.id === lesson.id)}
-                              completed={completedIds.has(lesson.id)}
-                              unlocked={isLessonUnlocked(lesson.id, completedIds)}
-                            />
-                          ))}
+                          {section.lessons.map((lesson) => {
+                            const completed = completedIds.has(lesson.id)
+                            const structurallyUnlocked = isLessonUnlocked(lesson.id, completedIds)
+                            const premiumLocked = structurallyUnlocked && !completed && tierPremiumLocked
+                            return (
+                              <LessonRow
+                                key={lesson.id}
+                                lesson={gitLessons.find((l) => l.id === lesson.id)}
+                                completed={completed}
+                                unlocked={subscription.isActive || (structurallyUnlocked && !premiumLocked)}
+                                premiumLocked={premiumLocked}
+                                tierIsPremium={tierIsPremium}
+                              />
+                            )
+                          })}
                         </div>
                       </details>
                     )
                   })}
 
-                  <ExamRow tier={tier} completedIds={completedIds} />
+                  <ExamRow
+                    tier={tier}
+                    completedIds={completedIds}
+                    premiumLocked={tierPremiumLocked}
+                    tierIsPremium={tierIsPremium}
+                    subscriptionActive={subscription.isActive}
+                  />
                 </div>
               </details>
             )

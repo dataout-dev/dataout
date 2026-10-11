@@ -7,6 +7,8 @@ import { pyExamId, pyTierById } from '../../data/python/index.js'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../supabaseClient'
 import { isExamUnlocked } from '../../lib/pythonAccess'
+import { useSubscription } from '../../lib/useSubscription'
+import { isPremiumKeyLocked, pythonTierKey } from '../../lib/premiumAccess'
 import { loadExerciseProgress, saveExerciseProgress } from '../../lib/exerciseProgress'
 import { usePythonChallenge } from '../../lib/usePythonChallenge'
 import { useCompletedLessons } from '../../lib/useCompletedLessons'
@@ -261,6 +263,7 @@ function PythonExam() {
   const tier = pyTierById[tierId]
   const { session } = useAuth()
   const { completedIds, loaded, markCompleted } = useCompletedLessons()
+  const subscription = useSubscription()
 
   if (!tier || tier.soon) {
     return (
@@ -270,11 +273,14 @@ function PythonExam() {
     )
   }
 
-  if (!loaded) return null
+  if (!loaded || !subscription.loaded) return null
 
   const questions = pyExams[tier.id] ?? []
   const stepId = pyExamId(tier.id)
-  if (questions.length === 0 || !isExamUnlocked(tier.id, completedIds)) return <Navigate to="/learn/python" replace />
+  if (questions.length === 0 || (!subscription.isActive && !isExamUnlocked(tier.id, completedIds))) return <Navigate to="/learn/python" replace />
+  if (!completedIds.has(stepId) && isPremiumKeyLocked(pythonTierKey(tier.id), subscription.isActive)) {
+    return <Navigate to="/subscribe" replace />
+  }
 
   const onPass = async () => {
     markCompleted(stepId)

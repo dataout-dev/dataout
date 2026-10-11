@@ -3,7 +3,10 @@ import { lessons, tierLessons, tiers, examId, tierProjects } from '../data/lesso
 import { exams } from '../data/curriculum/exams'
 import { useCompletedLessons } from '../lib/useCompletedLessons'
 import { isStepUnlocked } from '../lib/lessonAccess'
+import { useSubscription } from '../lib/useSubscription'
+import { isPremiumKey, isPremiumKeyLocked, sqlTierKey, sqlProjectKey } from '../lib/premiumAccess'
 import { sqlPlayground } from '../data/playgrounds'
+import PremiumBadge from '../components/PremiumBadge'
 import { ArrowLeft, ArrowRight, Database, Check, Folder, Lock, Terminal } from '../components/icons'
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -16,6 +19,7 @@ function StatusTag({ completed, unlocked }) {
 
 function SqlMainPage() {
   const { completedIds } = useCompletedLessons()
+  const subscription = useSubscription()
   const doneCount = lessons.filter((l) => completedIds.has(l.id)).length
 
   return (
@@ -88,9 +92,13 @@ function SqlMainPage() {
             const questions = exams[tier.id] ?? []
             const points = questions.reduce((sum, q) => sum + q.points, 0)
             const examStepId = examId(tier.id)
-            const examUnlocked = isStepUnlocked(examStepId, completedIds)
+            const examStructurallyUnlocked = isStepUnlocked(examStepId, completedIds)
             const examPassed = completedIds.has(examStepId)
             const previousTier = tiers[tierIndex - 1]
+            const tierIsPremium = isPremiumKey(sqlTierKey(tier.id))
+            const tierPremiumLocked = isPremiumKeyLocked(sqlTierKey(tier.id), subscription.isActive)
+            const examPremiumLocked = examStructurallyUnlocked && !examPassed && tierPremiumLocked
+            const examUnlocked = subscription.isActive || (examStructurallyUnlocked && !examPremiumLocked)
 
             return (
               <div key={tier.id} id={tier.id}>
@@ -100,7 +108,10 @@ function SqlMainPage() {
                       <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[#57534e]">
                         Tier {tier.number}
                       </p>
-                      <h3 className="font-display text-3xl font-semibold text-[#1c1c1a]">{tier.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-display text-3xl font-semibold text-[#1c1c1a]">{tier.name}</h3>
+                        {isPremiumKey(sqlTierKey(tier.id)) && <PremiumBadge />}
+                      </div>
                       <p className="mt-1 text-sm text-[#3f3b37]">{tier.tagline}</p>
                       <p className="mt-3 text-xs text-[#57534e]">
                         {tier.audience} Data: {tier.datasetNote}
@@ -120,7 +131,9 @@ function SqlMainPage() {
                 <div className="flex flex-col gap-4">
                   {tierItems.map((lesson) => {
                     const completed = completedIds.has(lesson.id)
-                    const unlocked = isStepUnlocked(lesson.id, completedIds)
+                    const structurallyUnlocked = isStepUnlocked(lesson.id, completedIds)
+                    const premiumLocked = structurallyUnlocked && !completed && tierPremiumLocked
+                    const unlocked = subscription.isActive || (structurallyUnlocked && !premiumLocked)
                     const isFirstOfTier = lesson.numberInTier === 1
 
                     const body = (
@@ -140,14 +153,17 @@ function SqlMainPage() {
                               <p className="font-semibold text-heading">
                                 {lesson.title} {lesson.titleAccent}
                               </p>
+                              {tierIsPremium && <PremiumBadge />}
                               <StatusTag completed={completed} unlocked={unlocked} />
                             </div>
                             <p className="text-sm text-body-text">
                               {unlocked
                                 ? lesson.blurb
-                                : isFirstOfTier && previousTier
-                                  ? `Pass the ${previousTier.name} exam to unlock this tier.`
-                                  : 'Complete the previous lesson to unlock this one.'}
+                                : premiumLocked
+                                  ? 'Subscribers only.'
+                                  : isFirstOfTier && previousTier
+                                    ? `Pass the ${previousTier.name} exam to unlock this tier.`
+                                    : 'Complete the previous lesson to unlock this one.'}
                             </p>
                           </div>
                         </div>
@@ -165,6 +181,14 @@ function SqlMainPage() {
                       <Link
                         key={lesson.id}
                         to={`/learn/sql/${lesson.id}`}
+                        className="group flex items-center justify-between gap-4 bg-surface rounded-2xl border border-heading/10 p-6 hover:border-heading/20 transition-colors"
+                      >
+                        {body}
+                      </Link>
+                    ) : premiumLocked ? (
+                      <Link
+                        key={lesson.id}
+                        to="/subscribe"
                         className="group flex items-center justify-between gap-4 bg-surface rounded-2xl border border-heading/10 p-6 hover:border-heading/20 transition-colors"
                       >
                         {body}
@@ -193,12 +217,15 @@ function SqlMainPage() {
                           <div>
                             <div className="flex items-center gap-2 flex-wrap mb-1">
                               <p className="font-semibold text-heading">{tier.name} tier exam</p>
+                              {tierIsPremium && <PremiumBadge />}
                               <StatusTag completed={examPassed} unlocked={examUnlocked} />
                             </div>
                             <p className="text-sm text-body-text">
                               {examUnlocked
                                 ? `${questions.length} questions on real data · ${points} points · pass at ${tier.examPassPercent}%`
-                                : `Finish all ${tierItems.length} lessons in this tier to unlock the exam.`}
+                                : examPremiumLocked
+                                  ? 'Subscribers only.'
+                                  : `Finish all ${tierItems.length} lessons in this tier to unlock the exam.`}
                             </p>
                           </div>
                         </div>
@@ -219,6 +246,13 @@ function SqlMainPage() {
                       >
                         {body}
                       </Link>
+                    ) : examPremiumLocked ? (
+                      <Link
+                        to="/subscribe"
+                        className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-heading/15 bg-surface p-6 hover:border-heading/30 transition-colors"
+                      >
+                        {body}
+                      </Link>
                     ) : (
                       <div
                         aria-disabled="true"
@@ -231,7 +265,10 @@ function SqlMainPage() {
 
                   {tierProjects(tier.id).map((project) => {
                     const completed = completedIds.has(project.id)
-                    const unlocked = isStepUnlocked(project.id, completedIds)
+                    const structurallyUnlocked = isStepUnlocked(project.id, completedIds)
+                    const premiumLocked =
+                      structurallyUnlocked && !completed && isPremiumKeyLocked(sqlProjectKey(project.id), subscription.isActive)
+                    const unlocked = subscription.isActive || (structurallyUnlocked && !premiumLocked)
 
                     const body = (
                       <>
@@ -248,9 +285,16 @@ function SqlMainPage() {
                               <span className="text-[10px] font-semibold tracking-widest text-accent-dark uppercase">
                                 {project.kind === 'guided' ? 'Guided project' : 'Unguided project'}
                               </span>
+                              {isPremiumKey(sqlProjectKey(project.id)) && <PremiumBadge />}
                               <StatusTag completed={completed} unlocked={unlocked} />
                             </div>
-                            <p className="text-sm text-body-text">{unlocked ? project.blurb : 'Finish the step above to unlock this project.'}</p>
+                            <p className="text-sm text-body-text">
+                              {unlocked
+                                ? project.blurb
+                                : premiumLocked
+                                  ? 'Subscribers only.'
+                                  : 'Finish the step above to unlock this project.'}
+                            </p>
                           </div>
                         </div>
                         {unlocked ? (
@@ -267,6 +311,14 @@ function SqlMainPage() {
                       <Link
                         key={project.id}
                         to={`/learn/sql/project/${project.id}`}
+                        className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-dotted border-heading/15 bg-surface p-6 hover:border-heading/30 transition-colors"
+                      >
+                        {body}
+                      </Link>
+                    ) : premiumLocked ? (
+                      <Link
+                        key={project.id}
+                        to="/subscribe"
                         className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-dotted border-heading/15 bg-surface p-6 hover:border-heading/30 transition-colors"
                       >
                         {body}

@@ -7,6 +7,8 @@ import { examId, pathIndex, pathUrl, sqlPath, tierById } from '../data/lessons'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../supabaseClient'
 import { isStepUnlocked } from '../lib/lessonAccess'
+import { useSubscription } from '../lib/useSubscription'
+import { isPremiumKeyLocked, sqlTierKey } from '../lib/premiumAccess'
 import { loadExerciseProgress } from '../lib/exerciseProgress'
 import { useChallenge } from '../lib/useChallenge'
 import { useCompletedLessons } from '../lib/useCompletedLessons'
@@ -175,6 +177,7 @@ function ExamPage() {
   const tier = tierById[tierId]
   const { session } = useAuth()
   const { completedIds, loaded, markCompleted } = useCompletedLessons()
+  const subscription = useSubscription()
 
   if (!tier) {
     return (
@@ -184,10 +187,13 @@ function ExamPage() {
     )
   }
 
-  if (!loaded) return null
+  if (!loaded || !subscription.loaded) return null
 
   const stepId = examId(tier.id)
-  if (!isStepUnlocked(stepId, completedIds)) return <Navigate to="/learn/sql" replace />
+  if (!subscription.isActive && !isStepUnlocked(stepId, completedIds)) return <Navigate to="/learn/sql" replace />
+  if (!completedIds.has(stepId) && isPremiumKeyLocked(sqlTierKey(tier.id), subscription.isActive)) {
+    return <Navigate to="/subscribe" replace />
+  }
 
   const onPass = async () => {
     markCompleted(stepId)

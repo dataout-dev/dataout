@@ -3,7 +3,10 @@ import { pyExamId, pyLessons, pySections, pyTierLessons, pyTiers } from '../../d
 import { pyExams } from '../../data/python/exams/index.js'
 import { isExamUnlocked, isLessonUnlocked, isTierUnlocked } from '../../lib/pythonAccess'
 import { useCompletedLessons } from '../../lib/useCompletedLessons'
+import { useSubscription } from '../../lib/useSubscription'
+import { isPremiumKey, isPremiumKeyLocked, pythonTierKey } from '../../lib/premiumAccess'
 import { pythonPlayground } from '../../data/playgrounds'
+import PremiumBadge from '../../components/PremiumBadge'
 import { ArrowLeft, ArrowRight, Check, ChevronDown, CodeIcon, Lock, Terminal } from '../../components/icons'
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -16,7 +19,7 @@ function StatusTag({ completed, unlocked }) {
 
 const kindLabel = { learn: 'Learn-heavy', read: 'Reading', code: 'Practice' }
 
-function LessonRow({ lesson, completed, unlocked }) {
+function LessonRow({ lesson, completed, unlocked, premiumLocked, tierIsPremium }) {
   const body = (
     <>
       <div className="flex items-start gap-4 min-w-0">
@@ -32,10 +35,11 @@ function LessonRow({ lesson, completed, unlocked }) {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <p className="font-semibold text-heading">{lesson.title}</p>
+            {tierIsPremium && <PremiumBadge />}
             <StatusTag completed={completed} unlocked={unlocked} />
           </div>
           <p className="text-sm text-body-text">
-            {unlocked ? lesson.blurb : 'Complete the earlier lessons to unlock this one.'}
+            {unlocked ? lesson.blurb : premiumLocked ? 'Subscribers only.' : 'Complete the earlier lessons to unlock this one.'}
             <span className="text-caption"> · {kindLabel[lesson.kind]}</span>
           </p>
         </div>
@@ -57,6 +61,13 @@ function LessonRow({ lesson, completed, unlocked }) {
     >
       {body}
     </Link>
+  ) : premiumLocked ? (
+    <Link
+      to="/subscribe"
+      className="group flex items-center justify-between gap-4 bg-surface rounded-xl border border-heading/10 px-5 py-4 hover:border-heading/20 transition-colors"
+    >
+      {body}
+    </Link>
   ) : (
     <div aria-disabled="true" className="flex items-center justify-between gap-4 bg-surface rounded-xl border border-heading/10 px-5 py-4 cursor-not-allowed">
       {body}
@@ -64,11 +75,13 @@ function LessonRow({ lesson, completed, unlocked }) {
   )
 }
 
-function ExamRow({ tier, completedIds }) {
+function ExamRow({ tier, completedIds, premiumLocked, tierIsPremium, subscriptionActive }) {
   const questions = pyExams[tier.id] ?? []
   const points = questions.reduce((sum, q) => sum + q.points, 0)
-  const unlocked = isExamUnlocked(tier.id, completedIds) && questions.length > 0
+  const structurallyUnlocked = (isExamUnlocked(tier.id, completedIds) || subscriptionActive) && questions.length > 0
   const passed = completedIds.has(pyExamId(tier.id))
+  const locked = structurallyUnlocked && !passed && premiumLocked
+  const unlocked = structurallyUnlocked && !locked
   const lessonCount = pyTierLessons(tier.id).length
 
   const body = (
@@ -80,6 +93,7 @@ function ExamRow({ tier, completedIds }) {
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <p className="font-semibold text-heading">{tier.name} tier exam</p>
+            {tierIsPremium && <PremiumBadge />}
             <StatusTag completed={passed} unlocked={unlocked} />
           </div>
           <p className="text-sm text-body-text">
@@ -87,7 +101,9 @@ function ExamRow({ tier, completedIds }) {
               ? 'The exam for this tier is being written.'
               : unlocked
                 ? `${questions.length} questions · ${points} points · pass at ${tier.examPassPercent}%`
-                : `Finish all ${lessonCount} lessons in this tier to unlock the exam.`}
+                : locked
+                  ? 'Subscribers only.'
+                  : `Finish all ${lessonCount} lessons in this tier to unlock the exam.`}
           </p>
         </div>
       </div>
@@ -108,6 +124,13 @@ function ExamRow({ tier, completedIds }) {
     >
       {body}
     </Link>
+  ) : locked ? (
+    <Link
+      to="/subscribe"
+      className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-heading/15 bg-surface p-6 hover:border-heading/30 transition-colors"
+    >
+      {body}
+    </Link>
   ) : (
     <div aria-disabled="true" className="flex items-center justify-between gap-4 rounded-2xl border-2 border-dashed border-heading/10 bg-surface p-6 cursor-not-allowed">
       {body}
@@ -117,6 +140,7 @@ function ExamRow({ tier, completedIds }) {
 
 function PythonPath() {
   const { completedIds } = useCompletedLessons()
+  const subscription = useSubscription()
   const doneCount = pyLessons.filter((l) => completedIds.has(l.id)).length
 
   return (
@@ -201,6 +225,8 @@ function PythonPath() {
             const tierSections = pySections.filter((s) => s.tier === tier.id)
             const tierUnlocked = isTierUnlocked(tier.id, completedIds)
             const tierStartOpen = !(tierItems.length > 0 && done === tierItems.length)
+            const tierIsPremium = isPremiumKey(pythonTierKey(tier.id))
+            const tierPremiumLocked = isPremiumKeyLocked(pythonTierKey(tier.id), subscription.isActive)
 
             return (
               <details key={tier.id} id={tier.id} open={tierStartOpen} className="group">
@@ -211,7 +237,10 @@ function PythonPath() {
                         Tier {tier.number}
                         {tier.entry ? ' · Open from the start' : ''}
                       </p>
-                      <h3 className="font-display text-3xl font-semibold text-[#1c1c1a]">{tier.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-display text-3xl font-semibold text-[#1c1c1a]">{tier.name}</h3>
+                        {tierIsPremium && <PremiumBadge />}
+                      </div>
                       <p className="mt-1 text-sm text-[#3f3b37]">{tier.tagline}</p>
                       <p className="mt-3 text-xs text-[#57534e]">
                         {tier.audience} Data: {tier.datasetNote}
@@ -264,20 +293,33 @@ function PythonPath() {
                           </div>
                         </summary>
                         <div className="flex flex-col gap-3 px-3 pb-3">
-                          {section.lessons.map((lesson) => (
-                            <LessonRow
-                              key={lesson.id}
-                              lesson={pyLessons.find((l) => l.id === lesson.id)}
-                              completed={completedIds.has(lesson.id)}
-                              unlocked={isLessonUnlocked(lesson.id, completedIds)}
-                            />
-                          ))}
+                          {section.lessons.map((lesson) => {
+                            const completed = completedIds.has(lesson.id)
+                            const structurallyUnlocked = isLessonUnlocked(lesson.id, completedIds)
+                            const premiumLocked = structurallyUnlocked && !completed && tierPremiumLocked
+                            return (
+                              <LessonRow
+                                key={lesson.id}
+                                lesson={pyLessons.find((l) => l.id === lesson.id)}
+                                completed={completed}
+                                unlocked={subscription.isActive || (structurallyUnlocked && !premiumLocked)}
+                                premiumLocked={premiumLocked}
+                                tierIsPremium={tierIsPremium}
+                              />
+                            )
+                          })}
                         </div>
                       </details>
                     )
                   })}
 
-                  <ExamRow tier={tier} completedIds={completedIds} />
+                  <ExamRow
+                    tier={tier}
+                    completedIds={completedIds}
+                    premiumLocked={tierPremiumLocked}
+                    tierIsPremium={tierIsPremium}
+                    subscriptionActive={subscription.isActive}
+                  />
                 </div>
               </details>
             )

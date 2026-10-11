@@ -39,6 +39,7 @@ function MobileMenu({ session, onNavigate }) {
 
         {session ? (
           <>
+            <Link to="/subscribe" className={row} onClick={onNavigate}>Subscribe</Link>
             <Link to="/profile" className={row} onClick={onNavigate}>Profile</Link>
             <button
               onClick={() => {
@@ -120,6 +121,7 @@ function Layout() {
           <Link to="/settings" className="text-body-text text-sm hover:text-heading transition-colors">Settings</Link>
           {session ? (
             <>
+              <Link to="/subscribe" className="text-body-text text-sm hover:text-heading transition-colors">Subscribe</Link>
               <Link to="/profile" className="text-body-text text-sm hover:text-heading transition-colors">Profile</Link>
               <button
                 onClick={() => supabase.auth.signOut()}
