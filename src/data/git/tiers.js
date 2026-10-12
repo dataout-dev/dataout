@@ -22,19 +22,19 @@ export const gitTiers = [
     id: 'remotes',
     number: 3,
     name: 'Remotes & Collaboration',
-    tagline: 'Working with other people’s commits, forks and pull requests.',
+    tagline: 'Working with other people’s commits — clone, fetch, pull, and push.',
     audience: 'Finish Branching & Merging and pass its exam to unlock this tier.',
     color: '#e6dcf3',
-    soon: true,
+    examPassPercent: 70,
   },
   {
     id: 'advanced',
     number: 4,
     name: 'Advanced Git & Real Workflows',
-    tagline: 'Debugging history, git internals, and the parts that need real infrastructure.',
+    tagline: 'Stash, rewrite history safely, bisect bugs, and recover from mistakes.',
     audience: 'Finish Remotes & Collaboration and pass its exam to unlock this tier.',
     color: '#cfe3f5',
-    soon: true,
+    examPassPercent: 70,
   },
 ]
 

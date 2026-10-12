@@ -44,6 +44,11 @@ function parseFlags(args, { messageFlag = false } = {}) {
       opts.message = args[++i]
     } else if (messageFlag && arg.startsWith('--message=')) {
       opts.message = arg.slice('--message='.length)
+    } else if (arg.startsWith('--') && arg.includes('=')) {
+      // Generic "--key=value" (e.g. --author=Dana for log filtering), checked after the
+      // commit-specific --message= special case above so that one still wins for commit.
+      const eq = arg.indexOf('=')
+      opts[arg.slice(2, eq)] = arg.slice(eq + 1)
     } else if (arg.startsWith('--')) {
       flags.add(arg.slice(2))
     } else if (arg.startsWith('-') && arg.length > 1) {
@@ -123,9 +128,15 @@ async function cmdStatus(fs, dir, { flags }) {
   const staged = rows.filter((r) => r.staged)
   const unstaged = rows.filter((r) => r.unstaged)
   const untracked = rows.filter((r) => r.untracked)
-  const lines = [`On branch ${branch}`]
+  const lines = branch ? [`On branch ${branch}`] : [`HEAD detached at ${shortOid(await eng.headOid(fs, dir))}`]
   if (await eng.mergeInProgress(fs, dir)) {
     lines.push('You have unmerged paths.', '  (fix conflicts and run "git commit")', '  (use "git merge --abort" to abort the merge)', '')
+  }
+  if (await eng.rebaseInProgress(fs, dir)) {
+    lines.push('You are currently rebasing.', '  (fix conflicts and run "git rebase --continue")', '  (use "git rebase --abort" to check out the original branch)', '')
+  }
+  if (await eng.cherryPickInProgress(fs, dir)) {
+    lines.push('You are currently cherry-picking a commit.', '  (fix conflicts and run "git commit")', '')
   }
   if (staged.length) {
     lines.push('Changes to be committed:')
@@ -204,11 +215,19 @@ async function readIndexOrHeadContent(fs, dir, filepath) {
   return eng.fileAtRef(fs, dir, 'HEAD', filepath)
 }
 
-async function cmdLog(fs, dir, { flags }) {
-  const commits = await eng.repoLog(fs, dir)
+async function cmdLog(fs, dir, { flags, opts }) {
+  let commits = await eng.repoLog(fs, dir)
+  if (opts.author) {
+    const needle = opts.author.toLowerCase()
+    commits = commits.filter((c) => c.author.name.toLowerCase().includes(needle))
+  }
   if (commits.length === 0) return ok('')
   if (flags.has('oneline')) {
-    return ok(commits.map((c) => `${shortOid(c.oid)} ${c.message.split('\n')[0]}`).join('\n'))
+    // --graph on a single linear line of history (the only case this sandbox ever shows) is
+    // just a "* " per commit — real git's graph only gets more elaborate once branches
+    // diverge within the same log view, which this simplified log never renders together.
+    const bullet = flags.has('graph') ? '* ' : ''
+    return ok(commits.map((c) => `${bullet}${shortOid(c.oid)} ${c.message.split('\n')[0]}`).join('\n'))
   }
   const blocks = commits.map((c) => {
     const date = new Date(c.author.timestamp * 1000).toUTCString()
@@ -239,8 +258,20 @@ async function cmdCheckout(fs, dir, { flags, positional }) {
     return ok(`Switched to a new branch '${name}'`)
   }
   if (positional.length === 0) return err('error: you must specify a branch, commit or path')
-  await eng.switchBranch(fs, dir, positional[0])
-  return ok(`Switched to branch '${positional[0]}'`)
+  const target = positional[0]
+  const branches = await eng.listBranchNames(fs, dir)
+  if (branches.includes(target)) {
+    await eng.switchBranch(fs, dir, target)
+    return ok(`Switched to branch '${target}'`)
+  }
+  // Not a branch name — isomorphic-git's own checkout has no relative-ref support (same gap
+  // expandRef already exists to paper over elsewhere in this engine), so resolve first and
+  // check out the real oid rather than handing it the raw "HEAD~1"-style string directly.
+  const oid = await eng.expandRef(fs, dir, target)
+  await eng.switchBranch(fs, dir, oid)
+  return ok(
+    `Note: switching to '${target}'.\n\nYou are in 'detached HEAD' state. You can look around, make experimental\nchanges and commit them, and you can discard any commits you make in this\nstate by switching back to a branch.\n\nHEAD is now at ${shortOid(oid)}`
+  )
 }
 
 async function cmdSwitch(fs, dir, { flags, positional }) {
@@ -294,10 +325,27 @@ async function cmdMerge(fs, dir, { flags, positional }) {
   return ok(`Merge made by the 'ort' strategy.`)
 }
 
-async function cmdRebase(fs, dir, { positional }) {
+function formatRebaseResult(result) {
+  if (result.conflict) {
+    return err(
+      `CONFLICT (content): Merge conflict in ${result.filepaths.join(', ')}\nerror: could not apply commit\nhint: Resolve the conflict, then run "git add <file>" and "git rebase --continue".`
+    )
+  }
+  return ok('Successfully rebased.')
+}
+
+async function cmdRebase(fs, dir, { flags, positional }) {
+  if (flags.has('continue')) {
+    const result = await eng.rebaseContinueState(fs, dir)
+    return formatRebaseResult(result)
+  }
+  if (flags.has('abort')) {
+    await eng.rebaseAbortState(fs, dir)
+    return ok('')
+  }
   if (positional.length === 0) return err('error: you must specify a branch to rebase onto')
-  await eng.rebaseOnto(fs, dir, positional[0])
-  return ok(`Successfully rebased onto ${positional[0]}.`)
+  const result = await eng.rebaseOnto(fs, dir, positional[0])
+  return formatRebaseResult(result)
 }
 
 async function cmdReset(fs, dir, { flags, positional }) {
@@ -355,6 +403,160 @@ async function cmdTag(fs, dir, { positional }) {
   return ok('')
 }
 
+// --- Remotes (Tier 3) ---
+// The "remote" is always the fixed sibling directory eng.remoteDirFor(dir) — see engine.js's
+// comment on why (no real network layer in this sandbox). Its internal path never appears
+// in output text; only the cosmetic url the student cloned with / configured via
+// `remote add` is shown, matching what real git would actually print.
+
+async function remoteUrlFor(fs, dir, remoteName) {
+  const remotes = await eng.listRemoteConfigs(fs, dir)
+  return remotes.find((r) => r.remote === remoteName)?.url ?? remoteName
+}
+
+async function cmdClone(fs, dir, { positional }) {
+  if (positional.length === 0) return err('fatal: You must specify a repository to clone.')
+  const url = positional[0]
+  await eng.cloneFrom(fs, dir, eng.remoteDirFor(dir), { remoteName: 'origin', url })
+  const name = url.split('/').pop().replace(/\.git$/, '') || 'repository'
+  return ok(`Cloning into '${name}'...\ndone.`)
+}
+
+async function cmdRemote(fs, dir, { flags, positional }) {
+  if (flags.has('v') || flags.has('verbose')) {
+    const remotes = await eng.listRemoteConfigs(fs, dir)
+    return ok(remotes.flatMap((r) => [`${r.remote}\t${r.url} (fetch)`, `${r.remote}\t${r.url} (push)`]).join('\n'))
+  }
+  if (positional[0] === 'add') {
+    const [, name, url] = positional
+    if (!name || !url) return err('usage: git remote add <name> <url>')
+    await eng.addRemoteConfig(fs, dir, name, url)
+    return ok('')
+  }
+  if (positional[0] === 'remove' || positional[0] === 'rm') {
+    const [, name] = positional
+    if (!name) return err('usage: git remote remove <name>')
+    await eng.removeRemoteConfig(fs, dir, name)
+    return ok('')
+  }
+  const remotes = await eng.listRemoteConfigs(fs, dir)
+  return ok(remotes.map((r) => r.remote).join('\n'))
+}
+
+async function cmdFetch(fs, dir, { positional }) {
+  const remoteName = positional[0] ?? 'origin'
+  const url = await remoteUrlFor(fs, dir, remoteName)
+  const branches = await eng.fetchFromRemote(fs, dir, eng.remoteDirFor(dir), remoteName)
+  const lines = branches.map((b) => ` * branch            ${b}         -> FETCH_HEAD`)
+  return ok([`From ${url}`, ...lines].join('\n'))
+}
+
+async function cmdPull(fs, dir, { positional }) {
+  const remoteName = positional[0] ?? 'origin'
+  const result = await eng.pullFromRemote(fs, dir, eng.remoteDirFor(dir), remoteName)
+  if (result.conflict) {
+    return err(
+      `Auto-merging ${result.filepaths.join(', ')}\nCONFLICT (content): Merge conflict in ${result.filepaths.join(', ')}\nAutomatic merge failed; fix conflicts and then commit the result.`
+    )
+  }
+  if (result.fastForward) return ok('Updating\nFast-forward')
+  return ok(`Merge made by the 'ort' strategy.`)
+}
+
+async function cmdPush(fs, dir, { flags, positional }) {
+  const remoteName = positional[0] ?? 'origin'
+  const force = flags.has('force') || flags.has('f')
+  const forceWithLease = flags.has('force-with-lease')
+  const result = await eng.pushToRemote(fs, dir, eng.remoteDirFor(dir), remoteName, { force, forceWithLease })
+  if (result.rejected) {
+    if (result.staleLease) {
+      return err(
+        `! [rejected]        ${result.branch} -> ${result.branch} (stale info)\nerror: failed to push some refs\nhint: Updates were rejected because the remote ref has moved since you last\nhint: fetched it. Fetch again before forcing.`
+      )
+    }
+    return err(
+      `! [rejected]        ${result.branch} -> ${result.branch} (fetch first)\nerror: failed to push some refs\nhint: Updates were rejected because the remote contains work that you do\nhint: not have locally. This is usually caused by another repository pushing\nhint: to the same ref. You may want to first integrate the remote changes\nhint: (e.g., 'git pull ...') before pushing again.`
+    )
+  }
+  const url = await remoteUrlFor(fs, dir, remoteName)
+  const marker = result.created ? '* [new branch]     ' : '  '
+  const forceNote = force || forceWithLease ? ' (forced update)' : ''
+  return ok(`To ${url}\n${marker} ${result.branch} -> ${result.branch}${forceNote}`)
+}
+
+// --- Stash, cherry-pick, reflog, bisect (Tier 4) ---
+
+async function cmdStash(fs, dir, { positional }) {
+  const sub = positional[0]
+  if (!sub || sub === 'push') {
+    await eng.stashPush(fs, dir, positional.slice(sub === 'push' ? 1 : 0).join(' '))
+    return ok('Saved working directory and index state WIP')
+  }
+  if (sub === 'pop') {
+    await eng.stashPop(fs, dir)
+    return ok('Dropped stash@{0}')
+  }
+  if (sub === 'apply' || sub === 'drop') {
+    const refIdx = parseStashIndex(positional[1])
+    if (sub === 'apply') await eng.stashApply(fs, dir, refIdx)
+    else await eng.stashDrop(fs, dir, refIdx)
+    return ok('')
+  }
+  if (sub === 'list') {
+    // isomorphic-git's own list entries already come pre-formatted as "stash@{N}: <message>:
+    // <oid> <summary>" — join as-is rather than re-wrapping with another index prefix.
+    const entries = await eng.stashList(fs, dir)
+    return ok(entries.join('\n'))
+  }
+  return err(`git: stash '${sub}' is not supported in this sandbox`)
+}
+
+// Accepts a bare index ("1") or the real stash@{1} syntax, defaulting to the most recent.
+function parseStashIndex(arg) {
+  if (!arg) return 0
+  const match = /^(?:stash@\{(\d+)\}|(\d+))$/.exec(arg)
+  return match ? Number(match[1] ?? match[2]) : 0
+}
+
+async function cmdCherryPick(fs, dir, { positional }) {
+  if (positional.length === 0) return err('error: you must specify a commit to cherry-pick')
+  const result = await eng.cherryPickCommit(fs, dir, positional[0])
+  if (result.conflict) {
+    return err(
+      `CONFLICT (content): Merge conflict in ${result.filepaths.join(', ')}\nerror: could not apply commit\nhint: Resolve the conflict, then run "git add <file>" and "git commit".`
+    )
+  }
+  return ok(`[${await eng.currentBranchName(fs, dir)} ${shortOid(await eng.headOid(fs, dir))}] cherry-picked`)
+}
+
+async function cmdReflog(fs, dir) {
+  const entries = await eng.reflogEntries(fs, dir)
+  return ok(entries.map((e, i) => `${shortOid(e.oid)} HEAD@{${i}}: ${e.message}`).join('\n'))
+}
+
+function formatBisectResult(result) {
+  if (result.waitingFor) return ok(`status: waiting for ${result.waitingFor} commit(s), bad commit known`)
+  if (result.done) return ok(`${shortOid(result.culprit)} is the first bad commit`)
+  return ok(`Bisecting: ${Math.max(0, result.remaining - 1)} revisions left to test after this\n[${shortOid(result.checkedOut)}] checked out`)
+}
+
+async function cmdBisect(fs, dir, { positional }) {
+  const sub = positional[0]
+  if (sub === 'start') {
+    await eng.bisectStart(fs, dir)
+    return ok('')
+  }
+  if (sub === 'bad' || sub === 'good') {
+    const result = await eng.bisectMark(fs, dir, sub, positional[1])
+    return formatBisectResult(result)
+  }
+  if (sub === 'reset') {
+    await eng.bisectResetState(fs, dir)
+    return ok('')
+  }
+  return err(`git: bisect '${sub}' is not supported in this sandbox`)
+}
+
 function ok(stdout) {
   return { ok: true, stdout, stderr: '' }
 }
@@ -380,6 +582,15 @@ const HANDLERS = {
   revert: cmdRevert,
   show: cmdShow,
   tag: cmdTag,
+  clone: cmdClone,
+  remote: cmdRemote,
+  fetch: cmdFetch,
+  pull: cmdPull,
+  push: cmdPush,
+  stash: cmdStash,
+  'cherry-pick': cmdCherryPick,
+  reflog: cmdReflog,
+  bisect: cmdBisect,
 }
 
 export async function runCommand(fs, dir, line) {

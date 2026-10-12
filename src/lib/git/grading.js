@@ -5,6 +5,7 @@
 import * as eng from './engine.js'
 
 export function makeHelpers(fs, dir) {
+  const remoteDir = eng.remoteDirFor(dir)
   return {
     log: (ref = 'HEAD') => eng.repoLog(fs, dir, ref),
     branch: () => eng.currentBranchName(fs, dir),
@@ -22,6 +23,22 @@ export function makeHelpers(fs, dir) {
     isMergedInto: (branch, intoRef = 'HEAD') => eng.isMergedInto(fs, dir, branch, intoRef),
     mergeInProgress: () => eng.mergeInProgress(fs, dir),
     conflicted: (filepath) => eng.hasConflictMarkers(fs, dir, filepath),
+    // --- Remotes (Tier 3) ---
+    remotes: () => eng.listRemoteConfigs(fs, dir),
+    hasRemote: async (name = 'origin') => (await eng.listRemoteConfigs(fs, dir)).some((r) => r.remote === name),
+    // the remote repo's own history, inspected directly — e.g. to confirm a push actually landed
+    remoteLog: (ref = 'main') => eng.repoLog(fs, remoteDir, ref),
+    remoteBranches: () => eng.listBranchNames(fs, remoteDir),
+    remoteFileAt: (ref, filepath) => eng.fileAtRef(fs, remoteDir, ref, filepath),
+    // a local remote-tracking ref (refs/remotes/<name>/<branch>), e.g. trackingLog('origin/main')
+    trackingLog: (name = 'origin/main') => eng.repoLog(fs, dir, `refs/remotes/${name}`),
+    trackingHead: (name = 'origin/main') => eng.expandRef(fs, dir, `refs/remotes/${name}`).catch(() => null),
+    // --- Advanced (Tier 4) ---
+    rebaseInProgress: () => eng.rebaseInProgress(fs, dir),
+    cherryPickInProgress: () => eng.cherryPickInProgress(fs, dir),
+    bisectInProgress: () => eng.bisectInProgress(fs, dir),
+    stashList: () => eng.stashList(fs, dir),
+    reflog: () => eng.reflogEntries(fs, dir),
   }
 }
 
