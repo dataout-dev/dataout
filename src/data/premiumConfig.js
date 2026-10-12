@@ -15,7 +15,7 @@ export const premiumContent = {
   'python:tier:foundations': 0,
   'python:tier:core': 0,
   'python:tier:oop': 0,
-  'python:tier:data': 0,
+  'python:tier:data': 1,
   'python:tier:pro': 1,
   'python:tier:algo': 0,
 
