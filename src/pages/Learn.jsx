@@ -3,14 +3,18 @@ import { lessons } from '../data/lessons'
 import { pyLessons } from '../data/python/index.js'
 import { gitLessons } from '../data/git/index.js'
 import { statsLessons } from '../data/stats/index.js'
+import { edaLessons, edaProjects } from '../data/eda/index.js'
+import { mlLessons, mlProjects } from '../data/ml/index.js'
 import { trackColors } from '../data/trackColors'
-import { Sparkles, Database, CodeIcon, GitBranch, BarChart, Table, Check, ArrowRight } from '../components/icons'
+import { Sparkles, Database, CodeIcon, GitBranch, BarChart, Eye, Award, Table, Check, ArrowRight } from '../components/icons'
 
 const trackIcons = {
   sql: Database,
   python: CodeIcon,
   git: GitBranch,
   stats: BarChart,
+  eda: Eye,
+  ml: Award,
   de: Table,
 }
 
@@ -47,6 +51,22 @@ function Learn() {
       color: trackColors.stats,
       desc: 'Build intuition for the mean, distributions, and p-values by watching them move, not just computing them.',
       lessonCount: statsLessons.length,
+    },
+    {
+      id: 'eda',
+      name: 'Exploratory Data Analysis',
+      available: true,
+      color: trackColors.eda,
+      desc: 'A short workflow, then 8 real messy datasets — 4 guided, 4 open — to practice on.',
+      lessonCount: edaLessons.length + edaProjects.length,
+    },
+    {
+      id: 'ml',
+      name: 'Predictive Modeling',
+      available: true,
+      color: trackColors.ml,
+      desc: 'The same 8 real datasets, now with a prediction target each — split, fit, evaluate honestly.',
+      lessonCount: mlLessons.length + mlProjects.length,
     },
     {
       id: 'de',

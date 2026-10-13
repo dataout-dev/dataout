@@ -5,13 +5,25 @@ import { supabase } from '../supabaseClient'
 import { lessons, allProjects } from '../data/lessons'
 import { pyLessons } from '../data/python/index.js'
 import { gitLessons } from '../data/git/index.js'
-import { computeBadges, computeGitBadges, computePythonBadges } from '../lib/badges'
+import { statsLessons } from '../data/stats/index.js'
+import { edaLessons, edaProjects } from '../data/eda/index.js'
+import { mlLessons, mlProjects } from '../data/ml/index.js'
+import {
+  computeBadges,
+  computeGitBadges,
+  computePythonBadges,
+  computeStatsBadges,
+  computeEdaBadges,
+  computeMlBadges,
+} from '../lib/badges'
 import {
   ArrowLeft,
   Award,
+  BarChart,
   Check,
   CodeIcon,
   Database,
+  Eye,
   Folder,
   GitBranch,
   Lock,
@@ -27,7 +39,12 @@ const SNAPSHOTS = [
   { subject: 'sql', label: 'SQL', icon: Database, color: '#cfe3f5', iconColor: '#2f6f9e', lessons },
   { subject: 'python', label: 'Python', icon: CodeIcon, color: '#dcead9', iconColor: '#3f7a4d', lessons: pyLessons },
   { subject: 'git', label: 'Git', icon: GitBranch, color: '#f6dccb', iconColor: '#a05a2c', lessons: gitLessons },
-  { subject: 'sql-projects', label: 'SQL projects', icon: Folder, color: '#f5d3d3', iconColor: '#9e4a4a', lessons: allProjects },
+  { subject: 'stats', label: 'Statistics', icon: BarChart, color: '#e6dcf3', iconColor: '#6b4f8f', lessons: statsLessons },
+  { subject: 'eda', label: 'Exploratory Data Analysis', icon: Eye, color: '#f6e3b4', iconColor: '#8a6d1d', lessons: edaLessons },
+  { subject: 'ml', label: 'Predictive Modeling', icon: Award, color: '#cfe3f5', iconColor: '#2f6f9e', lessons: mlLessons },
+  { subject: 'sql-projects', label: 'SQL projects', icon: Folder, color: '#f5d3d3', iconColor: '#9e4a4a', lessons: allProjects, projects: allProjects },
+  { subject: 'eda-projects', label: 'EDA projects', icon: Folder, color: '#f6e3b4', iconColor: '#8a6d1d', lessons: edaProjects, projects: edaProjects },
+  { subject: 'ml-projects', label: 'Predictive Modeling projects', icon: Folder, color: '#cfe3f5', iconColor: '#2f6f9e', lessons: mlProjects, projects: mlProjects },
 ]
 
 function getDisplayName(session) {
@@ -76,6 +93,9 @@ function Profile() {
     { subject: 'sql', label: 'SQL', badges: computeBadges(completedIds) },
     { subject: 'python', label: 'Python', badges: computePythonBadges(completedIds) },
     { subject: 'git', label: 'Git', badges: computeGitBadges(completedIds) },
+    { subject: 'stats', label: 'Statistics', badges: computeStatsBadges(completedIds) },
+    { subject: 'eda', label: 'Exploratory Data Analysis', badges: computeEdaBadges(completedIds) },
+    { subject: 'ml', label: 'Predictive Modeling', badges: computeMlBadges(completedIds) },
   ]
   const earnedCount = badgeGroups.reduce((sum, g) => sum + g.badges.filter((b) => b.earned).length, 0)
   const totalBadges = badgeGroups.reduce((sum, g) => sum + g.badges.length, 0)
@@ -188,7 +208,7 @@ function Profile() {
 
           <div className="flex flex-col gap-4">
             {snapshots.map((s) => {
-              const isProjects = s.subject === 'sql-projects'
+              const isProjects = Boolean(s.projects)
               return (
                 <div key={s.subject} className="rounded-xl bg-cream p-4">
                   <div className="flex items-start justify-between mb-1">
@@ -213,7 +233,7 @@ function Profile() {
 
                   {isProjects && (
                     <ul className="mt-3 flex flex-col gap-1.5 border-t border-heading/10 pt-3">
-                      {allProjects.map((project) => {
+                      {s.projects.map((project) => {
                         const done = completedIds.has(project.id)
                         return (
                           <li key={project.id} className="flex items-center gap-2 text-xs text-body-text">

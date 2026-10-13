@@ -78,6 +78,171 @@
         "Times such as dep_time are stored as HHMM numbers (517 means 5:17 am), as in the original.",
         "Cancelled flights have no departure time, so dep_time and dep_delay are NULL for them."
       ]
+    },
+    {
+      "id": "titanic",
+      "name": "Titanic passenger manifest",
+      "description": "891 passengers from the Titanic's maiden voyage, with class, fare, family size and who survived.",
+      "file": "titanic.sqlite",
+      "author": "Kaggle (\"Titanic: Machine Learning from Disaster\" competition)",
+      "source": {
+        "name": "Kaggle, mirrored on GitHub",
+        "url": "https://github.com/datasciencedojo/datasets/blob/master/titanic.csv"
+      },
+      "license": {
+        "name": "CC0 1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Converted from the CSV to a SQLite table named titanic, unchanged otherwise — empty cells stored as NULL.",
+      "notes": [
+        "Age is missing for about 1 in 5 passengers, and Cabin for more than 3 in 4 — this is deliberately left as-is, not imputed.",
+        "Name embeds a title (Mr., Mrs., Master, Dr., ...) as free text — extracting it is a common first exercise, not a provided column."
+      ]
+    },
+    {
+      "id": "online-retail",
+      "name": "Online Retail (UK, Dec 2010 – Feb 2011)",
+      "description": "About 62,900 line items from a UK-based online gift retailer's invoices over a 2-month window.",
+      "file": "online-retail.sqlite",
+      "author": "Dr. Daqing Chen, UCI Machine Learning Repository",
+      "source": {
+        "name": "UCI Machine Learning Repository",
+        "url": "https://archive.ics.uci.edu/dataset/352/online+retail"
+      },
+      "license": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "changes": "Converted from the original Online Retail.xlsx to a SQLite table named online_retail, subset to invoices dated 2011-01-01 through 2011-02-28 (the full file covers all of Dec 2010 – Dec 2011 and is too large to bundle), empty cells stored as NULL. Nothing else altered.",
+      "notes": [
+        "About 1 in 3 rows has no CustomerID — these are real anonymous or guest transactions, not a data error.",
+        "Cancelled orders are coded as an InvoiceNo starting with the letter C and have a negative Quantity — they are not flagged separately.",
+        "Description has a small number of non-product placeholder values (e.g. damaged stock, postage) mixed in with real product names."
+      ]
+    },
+    {
+      "id": "adult-census",
+      "name": "Adult Census Income",
+      "description": "32,561 records from the 1994 US Census, used to predict whether someone earns over $50K a year.",
+      "file": "adult-census.sqlite",
+      "author": "Ronny Kohavi and Barry Becker, UCI Machine Learning Repository",
+      "source": {
+        "name": "UCI Machine Learning Repository",
+        "url": "https://archive.ics.uci.edu/dataset/2/adult"
+      },
+      "license": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "changes": "Converted from adult.data to a SQLite table named adult with an added header row (workclass, occupation, native_country, etc. — the original file has no header). Leading spaces trimmed from every field. Nothing else altered.",
+      "notes": [
+        "Missing values are NOT stored as NULL here — the original data marks them with a literal \"?\" string, in workclass, occupation and native_country. That is deliberate: finding a disguised sentinel value is part of the point."
+      ]
+    },
+    {
+      "id": "student-performance",
+      "name": "Student Performance (Math & Portuguese)",
+      "description": "Survey and grade data for 395 math students and 649 Portuguese-language students at two Portuguese secondary schools.",
+      "file": "student-performance.sqlite",
+      "author": "Paulo Cortez, UCI Machine Learning Repository",
+      "source": {
+        "name": "UCI Machine Learning Repository",
+        "url": "https://archive.ics.uci.edu/dataset/320/student+performance"
+      },
+      "license": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "changes": "Converted from student-mat.csv and student-por.csv (semicolon-delimited) to two SQLite tables, student_math and student_portuguese, in the same database. Nothing else altered.",
+      "notes": [
+        "Some students appear in both tables (same student, two subjects) — there is no shared key provided to match them.",
+        "G1, G2 and G3 are period grades on a 0-20 scale, not a percentage.",
+        "Several columns (Dalc, Walc, famrel, health, ...) are 1-5 Likert-style ratings mixed in with yes/no fields and true 0-20 grades — they look alike as plain integers but mean very different things."
+      ]
+    },
+    {
+      "id": "world-dev-indicators",
+      "name": "World Development Indicators (5 series, 2003–2023)",
+      "description": "GDP per capita, life expectancy, population, CO2 emissions per capita and the extreme poverty rate, for ~215 countries and regions, 2003–2023.",
+      "file": "world-dev-indicators.sqlite",
+      "author": "The World Bank",
+      "source": {
+        "name": "World Bank Open Data (World Development Indicators)",
+        "url": "https://data.worldbank.org/indicator/NY.GDP.PCAP.CD"
+      },
+      "license": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "changes": "Downloaded 5 indicators separately (NY.GDP.PCAP.CD, SP.DYN.LE00.IN, SP.POP.TOTL, EN.ATM.CO2E.PC, SI.POV.DDAY) from the World Bank API, reshaped from their original wide (one column per year) format to one row per country/year, merged into a single world_dev_indicators table, and trimmed to 2003-2023. Empty cells stored as NULL. Nothing else altered.",
+      "notes": [
+        "The country column mixes real countries with regional and income-group aggregates the World Bank reports the same way (e.g. \"World\", \"Sub-Saharan Africa\", \"Arab World\") — nothing here filters those out.",
+        "Coverage varies a lot by indicator: the poverty rate in particular is only reported for a fraction of country-years.",
+        "The CO2-emissions source file contained a small number of literal duplicate rows for the same country and year — these were kept exactly as published, not deduplicated."
+      ]
+    },
+    {
+      "id": "storm-events",
+      "name": "NOAA Storm Events, 2023 (6 states)",
+      "description": "19,250 storm/weather events from 2023 in Texas, Oklahoma, California, Florida, North Dakota and Louisiana — type, damage estimates, casualties and a narrative for each.",
+      "file": "storm-events.sqlite",
+      "author": "NOAA National Centers for Environmental Information",
+      "source": {
+        "name": "NOAA NCEI Storm Events Database",
+        "url": "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/"
+      },
+      "license": {
+        "name": "Public domain (US government work)",
+        "url": "https://www.noaa.gov/information-technology/open-data-policy"
+      },
+      "changes": "Downloaded the full 2023 StormEvents_details file, subset to 6 states and 19 of its 51 original columns, converted to a SQLite table named storm_events. Empty cells stored as NULL. Nothing else altered.",
+      "notes": [
+        "DAMAGE_PROPERTY and DAMAGE_CROPS are text like \"40.00K\" or \"2.00M\", exactly as published — they are not parsed into numbers.",
+        "TOR_F_SCALE, BEGIN_LAT and BEGIN_LON only apply to certain event types (tornadoes, geocoded events), so most rows have them as NULL.",
+        "EVENT_NARRATIVE is free text written by NOAA staff, varying a lot in length and detail."
+      ]
+    },
+    {
+      "id": "airbnb-asheville",
+      "name": "Airbnb listings — Asheville, NC",
+      "description": "2,865 active and inactive Airbnb listings in Asheville, North Carolina, from a September 2026 snapshot.",
+      "file": "airbnb-asheville.sqlite",
+      "author": "Inside Airbnb",
+      "source": {
+        "name": "Inside Airbnb",
+        "url": "http://insideairbnb.com/get-the-data/"
+      },
+      "license": {
+        "name": "CC BY 4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "changes": "Converted from the 2026-09-19 listings.csv snapshot to a SQLite table named airbnb_listings, trimmed from 90 original columns to 22. Empty cells stored as NULL. Nothing else altered — price is kept exactly as published.",
+      "notes": [
+        "price is text with a leading dollar sign (e.g. \"$98.60\"), not a number — about 1 in 10 listings has no price at all.",
+        "bathrooms_text is a free-text description (e.g. \"1.5 baths\", \"Half-bath\"), not a plain number.",
+        "A listing with no reviews yet has NULL for first_review, last_review and every review_scores_* column."
+      ]
+    },
+    {
+      "id": "openfoodfacts",
+      "name": "Open Food Facts — US products",
+      "description": "5,445 US food products with brand, category and nutrition facts, from the crowd-sourced Open Food Facts database.",
+      "file": "openfoodfacts.sqlite",
+      "author": "Open Food Facts contributors",
+      "source": {
+        "name": "Open Food Facts",
+        "url": "https://world.openfoodfacts.org/data"
+      },
+      "license": {
+        "name": "Open Database License (ODbL) 1.0",
+        "url": "https://opendatacommons.org/licenses/odbl/1-0/"
+      },
+      "changes": "Downloaded a prefix of the full product CSV export, filtered to products tagged United States with a non-empty product_name, flattened the per-product nutrient list down to 5 named nutrients per 100g, and sampled down to 5,445 rows (a mix of products with and without nutrition facts, not a random sample of the whole filtered set) for a SQLite table named openfoodfacts. Empty cells stored as NULL. Nothing else altered.",
+      "notes": [
+        "This is crowd-sourced data: completeness (a 0-1 score) and last_modified_t (a Unix timestamp) reflect how much any one contributor filled in, not how important the product is.",
+        "nutriscore_grade is sometimes a real grade (a-e) and sometimes the literal text \"unknown\" or \"not-applicable\" — those are not missing values, they are what Open Food Facts itself recorded.",
+        "brands, categories and labels can each hold several comma-separated tags in one cell."
+      ]
     }
   ]
 }

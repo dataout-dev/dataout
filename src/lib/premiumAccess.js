@@ -19,3 +19,5 @@ export const sqlProjectKey = (projectId) => `sql:project:${projectId}`
 export const pythonTierKey = (tierId) => `python:tier:${tierId}`
 export const gitTierKey = (tierId) => `git:tier:${tierId}`
 export const statsTierKey = (tierId) => `stats:tier:${tierId}`
+export const edaProjectKey = (projectId) => `eda:project:${projectId}`
+export const mlProjectKey = (projectId) => `ml:project:${projectId}`

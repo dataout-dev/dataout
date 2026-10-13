@@ -13,6 +13,8 @@
     "check:python": "node scripts/check-python.mjs",
     "check:git": "node scripts/check-git.mjs",
     "check:stats": "node scripts/check-stats.mjs",
+    "check:eda": "node scripts/check-eda.mjs",
+    "check:ml": "node scripts/check-ml.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -33,6 +33,12 @@ const GitExam = lazy(() => import('./pages/git/GitExam'))
 const StatsPath = lazy(() => import('./pages/stats/StatsPath'))
 const StatsLesson = lazy(() => import('./pages/stats/StatsLesson'))
 const StatsExam = lazy(() => import('./pages/stats/StatsExam'))
+const EdaPath = lazy(() => import('./pages/eda/EdaPath'))
+const EdaLesson = lazy(() => import('./pages/eda/EdaLesson'))
+const EdaProject = lazy(() => import('./pages/eda/EdaProject'))
+const MlPath = lazy(() => import('./pages/ml/MlPath'))
+const MlLesson = lazy(() => import('./pages/ml/MlLesson'))
+const MlProject = lazy(() => import('./pages/ml/MlProject'))
 
 function App() {
   return (
@@ -171,6 +177,66 @@ function App() {
               <ProtectedRoute>
                 <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the lesson...</p>}>
                   <StatsLesson />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/eda"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the EDA path...</p>}>
+                  <EdaPath />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/eda/project/:projectId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the project...</p>}>
+                  <EdaProject />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/eda/:lessonId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the lesson...</p>}>
+                  <EdaLesson />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/ml"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the Predictive Modeling path...</p>}>
+                  <MlPath />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/ml/project/:projectId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the project...</p>}>
+                  <MlProject />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/ml/:lessonId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the lesson...</p>}>
+                  <MlLesson />
                 </Suspense>
               </ProtectedRoute>
             }
