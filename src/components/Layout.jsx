@@ -146,6 +146,20 @@ function Layout() {
         {menuOpen && <MobileMenu session={session} onNavigate={() => setOpenOn(null)} />}
       </nav>
       <Outlet />
+
+      <footer className="border-t border-heading/10">
+        <div className="max-w-6xl mx-auto px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-heading text-cream text-[10px] font-semibold font-display">do</span>
+            <span className="font-display font-semibold text-heading">DataOut</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link to="/about" className="text-sm text-body-text hover:text-heading transition-colors">About</Link>
+            <Link to="/contact" className="text-sm text-body-text hover:text-heading transition-colors">Contact</Link>
+            <p className="text-xs text-caption">© 2026 DataOut. Built for the curious.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

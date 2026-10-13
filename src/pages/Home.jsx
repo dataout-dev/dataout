@@ -184,16 +184,6 @@ function Home() {
           ))}
         </div>
       </section>
-
-      <footer className="border-t border-heading/10">
-        <div className="max-w-6xl mx-auto px-8 py-8 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-heading text-cream text-[10px] font-semibold font-display">do</span>
-            <span className="font-display font-semibold text-heading">DataOut</span>
-          </div>
-          <p className="text-xs text-caption">© 2026 DataOut. Built for the curious.</p>
-        </div>
-      </footer>
     </div>
   )
 }

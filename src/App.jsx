@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import Home from './pages/Home'
+import About from './pages/About'
+import Contact from './pages/Contact'
 import Learn from './pages/Learn'
 import Community from './pages/Community'
 import Competition from './pages/Competition'
@@ -51,6 +53,8 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/learn" element={<Learn />} />
           <Route path="/learn/:lessonType" element={<ProtectedRoute><SqlMainPage /></ProtectedRoute>}/>
           <Route path="/learn/sql/exam/:tier" element={<ProtectedRoute><ExamPage /></ProtectedRoute>} />
