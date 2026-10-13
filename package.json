@@ -12,6 +12,7 @@
     "check:projects": "node scripts/check-projects.mjs",
     "check:python": "node scripts/check-python.mjs",
     "check:git": "node scripts/check-git.mjs",
+    "check:stats": "node scripts/check-stats.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -33,6 +34,7 @@
     "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.3",
+    "recharts": "^3.10.1",
     "remark-gfm": "^4.0.1",
     "sql.js": "^1.14.2",
     "tailwindcss": "^4.3.3"

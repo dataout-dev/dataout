@@ -2,13 +2,15 @@ import { Link } from 'react-router-dom'
 import { lessons } from '../data/lessons'
 import { pyLessons } from '../data/python/index.js'
 import { gitLessons } from '../data/git/index.js'
+import { statsLessons } from '../data/stats/index.js'
 import { trackColors } from '../data/trackColors'
-import { Sparkles, Database, CodeIcon, GitBranch, Table, Check, ArrowRight } from '../components/icons'
+import { Sparkles, Database, CodeIcon, GitBranch, BarChart, Table, Check, ArrowRight } from '../components/icons'
 
 const trackIcons = {
   sql: Database,
   python: CodeIcon,
   git: GitBranch,
+  stats: BarChart,
   de: Table,
 }
 
@@ -37,6 +39,14 @@ function Learn() {
       color: trackColors.git,
       desc: 'Real git commands, run against real repositories, right in your browser.',
       lessonCount: gitLessons.length,
+    },
+    {
+      id: 'stats',
+      name: 'Statistics',
+      available: true,
+      color: trackColors.stats,
+      desc: 'Build intuition for the mean, distributions, and p-values by watching them move, not just computing them.',
+      lessonCount: statsLessons.length,
     },
     {
       id: 'de',

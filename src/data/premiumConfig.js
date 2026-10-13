@@ -23,4 +23,9 @@ export const premiumContent = {
   'git:tier:branching': 1,
   'git:tier:remotes': 0,
   'git:tier:advanced': 0,
+
+  'stats:tier:descriptive': 0,
+  'stats:tier:probability': 0,
+  'stats:tier:inferential': 1,
+  'stats:tier:relationships': 1,
 }

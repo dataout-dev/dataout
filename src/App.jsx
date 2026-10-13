@@ -30,6 +30,9 @@ const PythonExam = lazy(() => import('./pages/python/PythonExam'))
 const GitPath = lazy(() => import('./pages/git/GitPath'))
 const GitLesson = lazy(() => import('./pages/git/GitLesson'))
 const GitExam = lazy(() => import('./pages/git/GitExam'))
+const StatsPath = lazy(() => import('./pages/stats/StatsPath'))
+const StatsLesson = lazy(() => import('./pages/stats/StatsLesson'))
+const StatsExam = lazy(() => import('./pages/stats/StatsExam'))
 
 function App() {
   return (
@@ -138,6 +141,36 @@ function App() {
               <ProtectedRoute>
                 <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the lesson...</p>}>
                   <GitLesson />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/stats"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the Statistics path...</p>}>
+                  <StatsPath />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/stats/exam/:tier"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the exam...</p>}>
+                  <StatsExam />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/stats/:lessonId"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<p className="px-8 py-10 text-sm text-caption">Loading the lesson...</p>}>
+                  <StatsLesson />
                 </Suspense>
               </ProtectedRoute>
             }

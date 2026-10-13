@@ -1,0 +1,103 @@
+const code = (c) => ({ kind: 'code', points: 10, starter: 'answer = ', ...c })
+const mcq = (c) => ({ kind: 'mcq', points: 10, ...c })
+
+export const probabilityExam = [
+  mcq({
+    id: 'stats-probability-exam-1',
+    q: 'A fair six-sided die is rolled once. What is the probability of rolling an even number?',
+    options: ['1/6', '1/3', '1/2', '2/3'],
+    answer: 2,
+    why: 'Three outcomes (2, 4, 6) out of six equally likely outcomes satisfy "even": 3/6 = 1/2.',
+  }),
+  mcq({
+    id: 'stats-probability-exam-2',
+    q: 'You draw a card from a deck, do NOT replace it, then draw again. Are these two draws independent?',
+    options: ['Yes, card draws are always independent', 'No — removing the first card changes the odds for the second draw', 'Only if the first card is a face card', 'Independence does not apply to cards'],
+    answer: 1,
+    why: 'Sampling without replacement changes the composition of what is left, making the second draw dependent on the first.',
+  }),
+  code({
+    id: 'stats-probability-exam-3',
+    given: 'from scipy import stats\n\nx = 115.0\nmu = 100.0\nsigma = 15.0\n',
+    task: 'Using `scipy.stats.norm`, store the probability that a value drawn from Normal(`mu`, `sigma`) exceeds `x` in `answer`, as a float.',
+    reference: 'from scipy import stats\nanswer = float(1 - stats.norm.cdf(x, loc=mu, scale=sigma))',
+    traps: ['from scipy import stats\nanswer = float(stats.norm.cdf(x, loc=mu, scale=sigma))'],
+    walkthrough: 'The probability of exceeding x is 1 minus the CDF at x.',
+  }),
+  mcq({
+    id: 'stats-probability-exam-4',
+    q: 'A normal distribution has mean 50 and standard deviation 5. Roughly what range covers 68% of values, per the empirical rule?',
+    options: ['45 to 55', '40 to 60', '35 to 65', '50 to 55'],
+    answer: 0,
+    why: '68% falls within μ ± 1σ: 50 ± 5 = 45 to 55.',
+  }),
+  code({
+    id: 'stats-probability-exam-5',
+    given: 'n = 80\np = 0.35\n',
+    task: 'Store the expected number of successes of a Binomial(`n`, `p`) distribution in `answer`, as a float.',
+    reference: 'answer = float(n * p)',
+    traps: ['answer = float(n * p * (1 - p))'],
+    walkthrough: "A binomial distribution's expected value (mean) is simply n times p.",
+  }),
+  mcq({
+    id: 'stats-probability-exam-6',
+    q: 'What are the two parameters that define a binomial distribution?',
+    options: ['Mean and standard deviation', 'n (number of trials) and p (success probability per trial)', 'Minimum and maximum', 'Median and mode'],
+    answer: 1,
+    why: 'Every property of a binomial distribution, including its mean (n×p), follows from just these two parameters.',
+  }),
+  mcq({
+    id: 'stats-probability-exam-7',
+    q: 'What is the single parameter (λ) of a Poisson distribution, and what is distinctive about it?',
+    options: [
+      'The number of trials; it has no special property',
+      'The average rate of occurrence; it is both the mean AND the variance of the distribution',
+      'The maximum possible count; it equals the median',
+      'The standard deviation; it must always be an integer',
+    ],
+    answer: 1,
+    why: 'A Poisson distribution is fully described by λ, which simultaneously sets its mean and its variance — a distinctive feature most distributions do not share.',
+  }),
+  code({
+    id: 'stats-probability-exam-8',
+    given: 'from scipy import stats\n\nlam = 3.5\n',
+    task: 'Using `scipy.stats.poisson`, store the probability of observing exactly 0 events given rate `lam` in `answer`, as a float.',
+    reference: 'from scipy import stats\nanswer = float(stats.poisson.pmf(0, lam))',
+    traps: ['from scipy import stats\nanswer = float(stats.poisson.cdf(0, lam) - stats.poisson.pmf(1, lam))'],
+    walkthrough: 'The probability mass function (pmf) at k=0 gives P(exactly 0 events).',
+  }),
+  mcq({
+    id: 'stats-probability-exam-9',
+    q: 'What does the Central Limit Theorem (CLT) say?',
+    options: [
+      'Every dataset is normally distributed',
+      'As sample size increases, the distribution of the sample mean tends toward normal, regardless of the shape of the original population',
+      'Larger samples always have a smaller mean',
+      'It only applies to data that is already normally distributed',
+    ],
+    answer: 1,
+    why: 'The striking part of the CLT is that it barely cares what the original population looked like — averaging enough values tends to produce a normal-shaped sampling distribution regardless.',
+  }),
+  mcq({
+    id: 'stats-probability-exam-10',
+    q: 'According to the CLT, what happens to the standard error of the sample mean as sample size n increases?',
+    options: ['It increases', 'It stays exactly the same', 'It decreases, proportional to 1/√n', 'It becomes undefined'],
+    answer: 2,
+    why: 'Standard error = σ/√n — more data per sample means the sample mean clusters more tightly around the true population mean.',
+  }),
+  code({
+    id: 'stats-probability-exam-11',
+    given: 'import numpy as np\n\ntrials = 2000\nseed = 3\n',
+    task: 'Using one call `rng = np.random.default_rng(seed)` then one call `rng.integers(0, 2, size=trials)`, store the fraction of 1s (heads) in `answer`, as a float.',
+    reference: 'import numpy as np\nrng = np.random.default_rng(seed)\nflips = rng.integers(0, 2, size=trials)\nanswer = float(flips.mean())',
+    traps: ['import numpy as np\nrng = np.random.default_rng(seed)\nflips = rng.integers(0, 2, size=trials)\nanswer = float((flips == 0).mean())'],
+    walkthrough: 'Draw all flips in one vectorized call, then take the mean of the 0/1 array to get the fraction of heads (1s).',
+  }),
+  mcq({
+    id: 'stats-probability-exam-12',
+    q: 'You are counting "number of server errors in the next hour" for a service with a roughly constant average rate. Which distribution fits best?',
+    options: ['Normal', 'Binomial', 'Poisson', 'Uniform'],
+    answer: 2,
+    why: 'Counting rare, independent events over a fixed time window at a roughly constant rate is the signature Poisson setup.',
+  }),
+]
